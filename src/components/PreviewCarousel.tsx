@@ -1,0 +1,120 @@
+import React, { useState } from 'react';
+import { Image, LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { colors } from '@/theme';
+import { Icon } from './Icon';
+import { NativePdf } from './NativePdf';
+
+export interface PreviewItem {
+  uri: string;
+  kind: 'pdf' | 'image';
+  name: string;
+}
+
+interface Props {
+  items: PreviewItem[];
+  height: number;
+  /** Tap on a page. Used to open the full-screen viewer. */
+  onOpen?: (index: number) => void;
+  /** Shows the prototype's "Preview" pill (bottom-right). */
+  showZoomPill?: boolean;
+}
+
+/** Paged, read-only thumbnail strip. First page of each PDF, the whole image otherwise. */
+export function PreviewCarousel({ items, height, onOpen, showZoomPill }: Props) {
+  const [w, setW] = useState(0);
+  const [index, setIndex] = useState(0);
+  const [failed, setFailed] = useState<Record<number, boolean>>({});
+
+  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (w > 0) setIndex(Math.round(e.nativeEvent.contentOffset.x / w));
+  };
+
+  return (
+    <View>
+      <View style={[styles.wrap, { height }]} onLayout={(e: LayoutChangeEvent) => setW(e.nativeEvent.layout.width)}>
+        {w > 0 && (
+          <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} onScroll={onScroll} scrollEventThrottle={16}>
+            {items.map((it, i) => (
+              <Pressable
+                key={`${it.uri}-${i}`}
+                style={{ width: w, height, padding: 14 }}
+                onPress={() => onOpen?.(i)}
+                accessibilityRole="imagebutton"
+                accessibilityLabel={`${it.name}, page ${i + 1} of ${items.length}. Opens full screen.`}
+              >
+                {failed[i] ? (
+                  <View style={styles.fileCard}>
+                    <Icon name="alert" size={30} color={colors.secondary} />
+                    <Text style={styles.fileName} numberOfLines={2}>
+                      {it.name}
+                    </Text>
+                    <Text style={styles.fileSub}>Preview unavailable</Text>
+                  </View>
+                ) : it.kind === 'image' ? (
+                  <Image source={{ uri: it.uri }} style={styles.img} resizeMode="contain" onError={() => setFailed((f) => ({ ...f, [i]: true }))} />
+                ) : (
+                  <View style={styles.pdfBox} pointerEvents="none">
+                    <NativePdf
+                      source={{ uri: it.uri }}
+                      page={1}
+                      singlePage
+                      enablePaging={false}
+                      enableDoubleTapZoom={false}
+                      fitPolicy={2}
+                      trustAllCerts={false}
+                      style={styles.pdf}
+                      onError={() => setFailed((f) => ({ ...f, [i]: true }))}
+                      fallback={
+                        <View style={styles.fileCard}>
+                          <Icon name="file" size={34} color={colors.secondary} />
+                          <Text style={styles.fileName} numberOfLines={2}>
+                            {it.name}
+                          </Text>
+                          <Text style={styles.fileSub}>PDF document</Text>
+                        </View>
+                      }
+                    />
+                  </View>
+                )}
+              </Pressable>
+            ))}
+          </ScrollView>
+        )}
+        {items.length > 1 && (
+          <View style={styles.count}>
+            <Text style={styles.countText}>{`${index + 1}/${items.length}`}</Text>
+          </View>
+        )}
+        {showZoomPill && (
+          <Pressable style={styles.zoom} onPress={() => onOpen?.(index)} accessibilityRole="button" accessibilityLabel="Open full-screen preview">
+            <Icon name="expand" size={14} color="#fff" />
+            <Text style={styles.zoomText}>Preview</Text>
+          </Pressable>
+        )}
+      </View>
+      {items.length > 1 && (
+        <View style={styles.dots}>
+          {items.map((_, i) => (
+            <View key={i} style={[styles.dot, i === index && { backgroundColor: '#555' }]} />
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  wrap: { borderRadius: 18, overflow: 'hidden', backgroundColor: '#dcdce3' },
+  img: { width: '100%', height: '100%', borderRadius: 6 },
+  pdfBox: { flex: 1, backgroundColor: '#fff', borderRadius: 6, overflow: 'hidden' },
+  pdf: { flex: 1, backgroundColor: '#fff' },
+  fileCard: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#fff', borderRadius: 10, padding: 22 },
+  fileName: { fontSize: 14, fontWeight: '700', color: '#555', textAlign: 'center' },
+  fileSub: { fontSize: 13, color: colors.secondary },
+  count: { position: 'absolute', top: 10, right: 10, backgroundColor: 'rgba(0,0,0,0.55)', paddingVertical: 3, paddingHorizontal: 9, borderRadius: 999 },
+  countText: { color: '#fff', fontSize: 12, fontWeight: '600' },
+  zoom: { position: 'absolute', bottom: 10, right: 10, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,0,0,0.6)', paddingVertical: 7, paddingHorizontal: 12, borderRadius: 999 },
+  zoomText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+  dots: { flexDirection: 'row', justifyContent: 'center', gap: 6, paddingTop: 10, minHeight: 10 },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#c7c7cc' },
+});

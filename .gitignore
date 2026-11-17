@@ -1,0 +1,23 @@
+node_modules/
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native projects are generated on demand (Continuous Native Generation) and by EAS Build
+/ios
+/android
+
+# Env / credentials
+.env*.local
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# Logs / OS
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+.DS_Store

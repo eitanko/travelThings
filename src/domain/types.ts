@@ -28,8 +28,17 @@ export interface Attachment {
   checksum: string;
 }
 
+/** A user-created folder for documents. `My Documents` is the permanent default trip. */
+export interface Trip {
+  id: string;
+  name: string;
+  isDefault: boolean;
+}
+
 export interface Document {
   id: string;
+  /** Trip (folder) this entry belongs to. Required; every entry has exactly one trip. */
+  tripId: string;
   /** Original filename of the first attachment; display fallback when title is empty. */
   originalName: string;
   title: string | null;

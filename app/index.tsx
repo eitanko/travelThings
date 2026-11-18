@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useActionSheet } from '@/components/ActionSheet';
 import { DocumentRow } from '@/components/DocumentRow';
+import { NameDialog } from '@/components/NameDialog';
 import { EmptyState } from '@/components/EmptyState';
 import { Icon } from '@/components/Icon';
 import { SegmentedControl } from '@/components/SegmentedControl';
@@ -11,7 +12,8 @@ import { useToast } from '@/components/Toast';
 import { errorSheet } from '@/components/showError';
 import { todayISO } from '@/domain/dates';
 import { groupDocuments, matchesFilter, matchesQuery } from '@/domain/documents';
-import type { Document, FilterCategory } from '@/domain/types';
+import { DEFAULT_TRIP_NAME } from '@/domain/trips';
+import type { Document, FilterCategory, Trip } from '@/domain/types';
 import { loadSampleDocuments } from '@/dev/sampleData';
 import { getDocumentService } from '@/services/container';
 import { useAddFlow } from '@/state/addFlow';
@@ -28,10 +30,16 @@ const FILTERS: { key: FilterCategory; label: string }[] = [
 export default function HomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { docs, loading, error, reload } = useLibrary();
+  const { docs, trips, selectedTripId, loading, error, reload } = useLibrary();
   const sheet = useActionSheet();
   const toast = useToast();
   const { openAddSheet } = useAddFlow(sheet.show);
+  const [dialog, setDialog] = useState<null | { mode: 'create' } | { mode: 'rename'; trip: Trip }>(null);
+
+  const currentTrip = trips.find((t) => t.id === selectedTripId);
+  const tripName = currentTrip?.name ?? DEFAULT_TRIP_NAME;
+  const countIn = (tripId: string) => docs.filter((d) => d.tripId === tripId).length;
+  const tripDocs = useMemo(() => docs.filter((d) => d.tripId === selectedTripId), [docs, selectedTripId]);
 
   const [filter, setFilter] = useState<FilterCategory>('all');
   const [query, setQuery] = useState('');
@@ -57,8 +65,8 @@ export default function HomeScreen() {
   );
 
   const visible = useMemo(
-    () => docs.filter((d) => matchesFilter(d, filter) && matchesQuery(d, query)),
-    [docs, filter, query],
+    () => tripDocs.filter((d) => matchesFilter(d, filter) && matchesQuery(d, query)),
+    [tripDocs, filter, query],
   );
   const groups = useMemo(() => groupDocuments(visible, todayISO()), [visible]);
   const q = query.trim();
@@ -90,16 +98,106 @@ export default function HomeScreen() {
       </View>
     );
 
-  const isEmptyLibrary = !loading && !error && docs.length === 0;
+  const isEmptyLibrary = !loading && !error && tripDocs.length === 0;
+
+  // ---- Trips -------------------------------------------------------------------------------------------------
+
+  const chooseTrip = async (id: string) => {
+    if (id === selectedTripId) return;
+    try {
+      const svc = await getDocumentService();
+      await svc.selectTrip(id);
+      notifyLibraryChanged();
+    } catch (e) {
+      sheet.show(errorSheet(e));
+    }
+  };
+
+  const openTripSheet = () =>
+    sheet.show({
+      title: 'Trips',
+      actions: [
+        ...trips.map((t) => {
+          const n = countIn(t.id);
+          const selected = t.id === selectedTripId;
+          return {
+            label: t.name,
+            sub: `${selected ? 'Selected · ' : ''}${n} document${n === 1 ? '' : 's'}`,
+            icon: selected ? ('check' as const) : undefined,
+            onPress: () => void chooseTrip(t.id),
+            onMore: t.isDefault ? undefined : () => openTripActions(t),
+          };
+        }),
+        { label: 'Create trip', icon: 'plus' as const, onPress: () => setDialog({ mode: 'create' }) },
+      ],
+    });
+
+  /** Contextual menu for a custom trip. My Documents never gets one. */
+  const openTripActions = (t: Trip) =>
+    sheet.show({
+      title: t.name,
+      actions: [
+        { label: 'Rename Trip', onPress: () => setDialog({ mode: 'rename', trip: t }) },
+        { label: 'Delete Trip', destructive: true, onPress: () => openDeleteTrip(t) },
+      ],
+    });
+
+  const runDeleteTrip = async (t: Trip, mode: 'keep' | 'delete') => {
+    try {
+      const svc = await getDocumentService();
+      await svc.deleteTrip(t.id, mode);
+      notifyLibraryChanged();
+      toast.show(mode === 'keep' ? 'Trip deleted. Documents moved to My Documents' : 'Trip and its documents deleted');
+    } catch (e) {
+      sheet.show(errorSheet(e));
+    }
+  };
+
+  const confirmDeleteWithDocuments = (t: Trip, n: number) =>
+    sheet.show({
+      title: 'Delete documents permanently?',
+      message: `${n} document${n === 1 ? '' : 's'} and ${n === 1 ? 'its files' : 'their files'} will be removed from this device. This cannot be undone.`,
+      actions: [{ label: 'Delete Trip and Documents', destructive: true, onPress: () => void runDeleteTrip(t, 'delete') }],
+    });
+
+  const openDeleteTrip = (t: Trip) => {
+    const n = countIn(t.id);
+    if (n === 0) {
+      sheet.show({
+        title: `Delete “${t.name}”?`,
+        message: 'This trip is empty.',
+        actions: [{ label: 'Delete Trip', destructive: true, onPress: () => void runDeleteTrip(t, 'keep') }],
+      });
+      return;
+    }
+    sheet.show({
+      title: `Delete “${t.name}”?`,
+      message: `It contains ${n} document${n === 1 ? '' : 's'}. What should happen to them?`,
+      actions: [
+        { label: 'Keep documents in My Documents', onPress: () => void runDeleteTrip(t, 'keep') },
+        { label: 'Delete trip and documents', destructive: true, onPress: () => confirmDeleteWithDocuments(t, n) },
+      ],
+    });
+  };
 
   return (
     <View style={styles.root}>
       <View style={[styles.head, { paddingTop: insets.top + 10 }]}>
         <View style={styles.top}>
-          <Text style={styles.h1} accessibilityRole="header">
-            Documents
-          </Text>
-          {!isEmptyLibrary && <Text style={styles.count}>{`${visible.length} document${visible.length === 1 ? '' : 's'}`}</Text>}
+          <Pressable
+            onPress={openTripSheet}
+            accessibilityRole="button"
+            accessibilityLabel={`Trip: ${tripName}. Choose or manage trips`}
+            hitSlop={8}
+            style={({ pressed }) => [styles.titleBtn, pressed && { opacity: 0.6 }]}
+          >
+            <Text style={styles.h1} numberOfLines={1} accessibilityRole="header">
+              {tripName}
+            </Text>
+            <View style={{ transform: [{ rotate: '90deg' }] }}>
+              <Icon name="chevR" size={16} color={colors.blue} />
+            </View>
+          </Pressable>
         </View>
         {!isEmptyLibrary && (
           <>
@@ -194,6 +292,29 @@ export default function HomeScreen() {
         </Pressable>
       )}
 
+      {dialog && (
+        <NameDialog
+          key={dialog.mode === 'rename' ? dialog.trip.id : 'create'}
+          title={dialog.mode === 'create' ? 'New Trip' : 'Rename Trip'}
+          initialValue={dialog.mode === 'rename' ? dialog.trip.name : ''}
+          placeholder="Trip name"
+          saveLabel={dialog.mode === 'create' ? 'Create' : 'Save'}
+          onCancel={() => setDialog(null)}
+          onSave={async (name) => {
+            const svc = await getDocumentService();
+            if (dialog.mode === 'create') {
+              const trip = await svc.createTrip(name);
+              await svc.selectTrip(trip.id); // a new trip opens straight away, ready for documents
+              toast.show(`Created “${trip.name}”`);
+            } else {
+              await svc.renameTrip(dialog.trip.id, name);
+              toast.show('Trip renamed');
+            }
+            setDialog(null);
+            notifyLibraryChanged();
+          }}
+        />
+      )}
       {sheet.element}
       {toast.element}
     </View>
@@ -203,9 +324,9 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   head: { paddingHorizontal: 16, paddingBottom: 8 },
-  top: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', paddingHorizontal: 4, paddingBottom: 10 },
-  h1: { ...font.h1, color: colors.label },
-  count: { color: colors.secondary, fontSize: 15 },
+  top: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', paddingHorizontal: 4, paddingBottom: 10, gap: 12 },
+  titleBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, flexShrink: 1 },
+  h1: { fontSize: 22, fontWeight: '700', letterSpacing: -0.3, color: colors.label, flexShrink: 1 },
   search: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.fill, borderRadius: 11, paddingHorizontal: 10, height: 38 },
   searchInput: { flex: 1, fontSize: 17, color: colors.label, padding: 0 },
   sclear: { width: 18, height: 18, borderRadius: 9, backgroundColor: 'rgba(60,60,67,0.3)', alignItems: 'center', justifyContent: 'center' },

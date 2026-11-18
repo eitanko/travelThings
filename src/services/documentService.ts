@@ -1,8 +1,9 @@
 import { DocumentRepository } from '@/db/repository';
 import { AppError, toAppError } from '@/domain/errors';
 import { fingerprintInput } from '@/domain/documents';
+import { DEFAULT_TRIP_ID, cleanTripName, sameTripName } from '@/domain/trips';
 import { normalizeStaged, safeFileName, sanitizeMetadata } from '@/domain/validation';
-import type { Attachment, Document, DocumentMetadata, StagedFile } from '@/domain/types';
+import type { Attachment, Document, DocumentMetadata, StagedFile, Trip } from '@/domain/types';
 import type { FileStore } from './fileStore';
 
 export interface PreparedFile {
@@ -61,8 +62,14 @@ export class DocumentService {
    * Step 2: copy files into permanent storage (verified byte-for-byte) and save the record.
    * Success is returned only after BOTH the files and the metadata are durably stored.
    * Any failure removes whatever this call wrote and leaves existing data untouched.
+   * A new entry is saved into `tripId` (the selected trip; My Documents by default).
    */
-  async commit(prepared: PreparedImport, metaInput: Partial<DocumentMetadata>, mode: CommitMode): Promise<Document> {
+  async commit(
+    prepared: PreparedImport,
+    metaInput: Partial<DocumentMetadata>,
+    mode: CommitMode,
+    tripId: string = DEFAULT_TRIP_ID,
+  ): Promise<Document> {
     const meta = sanitizeMetadata(metaInput);
     const total = prepared.files.reduce((n, f) => n + f.size, 0);
     if (this.d.files.availableSpace() < total + SPACE_MARGIN_BYTES) throw new AppError('STORAGE_FULL');
@@ -99,6 +106,7 @@ export class DocumentService {
       const title = mode.kind === 'rename' ? mode.title.trim() || meta.title : meta.title;
       const doc: Document = {
         id: docId,
+        tripId,
         originalName,
         title: title ?? null,
         type: meta.type,
@@ -221,6 +229,86 @@ export class DocumentService {
 
   list() {
     return this.d.repo.list();
+  }
+
+  // ---- Trips -----------------------------------------------------------------------------------------------
+
+  listTrips(): Promise<Trip[]> {
+    return this.d.repo.listTrips();
+  }
+
+  /** The selected trip, falling back to My Documents when nothing is stored or the stored trip no longer exists. */
+  async selectedTripId(): Promise<string> {
+    const stored = await this.d.repo.getSelectedTripId();
+    if (stored && (await this.d.repo.getTrip(stored))) return stored;
+    return DEFAULT_TRIP_ID;
+  }
+
+  async selectTrip(id: string): Promise<void> {
+    if (!(await this.d.repo.getTrip(id))) throw new AppError('DATABASE_FAILED');
+    await this.d.repo.setSelectedTripId(id);
+  }
+
+  /** Creates an empty custom trip. Names are unique ignoring case. */
+  async createTrip(input: string): Promise<Trip> {
+    const name = await this.validTripName(input);
+    const trip: Trip = { id: this.d.newId(), name, isDefault: false };
+    await this.d.repo.insertTrip(trip);
+    return trip;
+  }
+
+  /** Renames a custom trip. Its documents are unaffected. My Documents cannot be renamed. */
+  async renameTrip(id: string, input: string): Promise<void> {
+    const trip = await this.requireTrip(id);
+    if (trip.isDefault) throw new AppError('UNKNOWN', undefined, 'My Documents can’t be renamed.');
+    const name = await this.validTripName(input, id);
+    await this.d.repo.renameTrip(id, name);
+  }
+
+  /**
+   * Deletes a custom trip.
+   * - `keep`: its documents move to My Documents first; no file is touched.
+   * - `delete`: its documents and their files are permanently removed.
+   * My Documents cannot be deleted. If the deleted trip was selected, My Documents becomes selected.
+   */
+  async deleteTrip(id: string, mode: 'keep' | 'delete'): Promise<{ filesRemoved: boolean }> {
+    const trip = await this.requireTrip(id);
+    if (trip.isDefault) throw new AppError('UNKNOWN', undefined, 'My Documents can’t be deleted.');
+    const keys = await this.d.repo.removeTrip(
+      id,
+      mode === 'keep' ? { kind: 'move', moveTo: DEFAULT_TRIP_ID } : { kind: 'delete' },
+      DEFAULT_TRIP_ID,
+    );
+    let filesRemoved = true;
+    for (const key of keys) {
+      try {
+        this.d.files.removeDir(key);
+      } catch {
+        filesRemoved = false; // swept by sweepOrphans() on next launch
+      }
+    }
+    return { filesRemoved };
+  }
+
+  /** Moves a whole entry, with all of its attachments, to another trip. */
+  async moveDocument(docId: string, tripId: string): Promise<void> {
+    if (!(await this.d.repo.get(docId))) throw new AppError('DATABASE_FAILED');
+    await this.requireTrip(tripId);
+    await this.d.repo.moveDocument(docId, tripId);
+  }
+
+  private async requireTrip(id: string): Promise<Trip> {
+    const trip = await this.d.repo.getTrip(id);
+    if (!trip) throw new AppError('DATABASE_FAILED');
+    return trip;
+  }
+
+  private async validTripName(input: string, exceptId?: string): Promise<string> {
+    const name = cleanTripName(input);
+    if (!name) throw new AppError('UNKNOWN', undefined, 'Enter a trip name.');
+    const clash = (await this.d.repo.listTrips()).some((t) => t.id !== exceptId && sameTripName(t.name, name));
+    if (clash) throw new AppError('UNKNOWN', undefined, `A trip named “${name}” already exists.`);
+    return name;
   }
 
   get(id: string) {

@@ -12,6 +12,7 @@ const TODAY = toISODate(NOW);
 let n = 0;
 const doc = (p: Partial<Document>): Document => ({
   id: `d${++n}`,
+  tripId: 'default-my-documents',
   originalName: `file${n}.pdf`,
   title: null,
   type: null,

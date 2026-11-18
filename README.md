@@ -14,7 +14,7 @@ Built with React Native, Expo (SDK 58), Expo Router and TypeScript (strict). Imp
 |---|---|
 | Typecheck (`tsc --noEmit`, strict) | ✅ passes |
 | Lint (`eslint`, incl. React Compiler rules) | ✅ 0 errors, 0 warnings |
-| Automated tests (Jest) | ✅ 53 passing |
+| Automated tests (Jest) | ✅ 76 passing |
 | iOS JS bundle (`expo export --platform ios`) | ✅ builds (Hermes bytecode) |
 | iOS native config (`expo prebuild`) | ✅ generates; plist and entitlements inspected |
 | **Run on a real iPhone / simulator** | ❌ **not done yet. See [Manual verification](#manual-verification-still-required)** |
@@ -38,7 +38,7 @@ npm run check        # typecheck + lint + tests
 
 | Works in Expo Go | Needs a development build |
 |---|---|
-| Library, search, filters, empty state | **PDF rendering / full-screen PDF viewer** (`react-native-pdf`) |
+| Library, search, filters, empty state | Thumbnail page of a PDF (`react-native-pdf`, dev build only; tapping still opens the PDF) |
 | Import from Files and Photos, Camera | **Document scanner** (`react-native-document-scanner-plugin`) |
 | Preview + metadata, save, edit, delete | iOS data-protection entitlement (only applied in a real build) |
 | Duplicate detection and error flows | |
@@ -114,9 +114,9 @@ Then in App Store Connect → **TestFlight**: wait for processing, answer the ex
 
 ## Scope
 
-**In Phase 1:** document library (Today / Upcoming / No Date / Past, search, All/Bookings/IDs/Other filters, empty state), Add via Documents / Images / Scan / Camera, preview + optional title/type/activity date, detail, one entry with multiple attached files (+ Add another document, remove one file, swipe between files), full-screen offline viewer with zoom, edit, delete with confirmation, checksum duplicate detection (Replace existing / Save with another name / Cancel), import error handling with Retry/Cancel.
+**In Phase 1:** trips (folders: My Documents plus custom trips, with create, rename, delete, move), document library (Today / Upcoming / No Date / Past, search, All/Bookings/IDs/Other filters, empty state), Add via Documents / Images / Scan / Camera, preview + optional title/type/activity date, detail, one entry with multiple attached files (+ Add another document, remove one file, swipe between files), full-screen offline viewer with zoom, edit, delete with confirmation, checksum duplicate detection (Replace existing / Save with another name / Cancel), import error handling with Retry/Cancel.
 
-**Deliberately not built** (per spec v0.6): trips, archive, travelers, bookings/events, ticket-completeness, AI extraction, iCloud sync, sharing, subscriptions, calendar view, advanced filters, description/location/booking-reference fields, authentication, any backend or network call.
+**Deliberately not built:** archive, travelers, bookings/events, ticket-completeness, AI extraction, iCloud sync, sharing, subscriptions, calendar view, advanced filters, description/location/booking-reference fields, authentication, any backend or network call.
 
 ---
 

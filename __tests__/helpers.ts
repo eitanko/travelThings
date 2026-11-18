@@ -89,6 +89,7 @@ export class NodeFileStore implements FileStore {
 export interface Harness {
   dir: string;
   dbPath: string;
+  db: NodeSqliteDb;
   files: NodeFileStore;
   repo: DocumentRepository;
   svc: DocumentService;
@@ -109,6 +110,7 @@ export async function makeHarness(existing?: { dir: string }): Promise<Harness> 
   return {
     dir,
     dbPath,
+    db,
     files,
     repo,
     svc,

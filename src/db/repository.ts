@@ -1,9 +1,10 @@
 import { AppError, toAppError } from '@/domain/errors';
-import type { Attachment, Document, DocumentMetadata, DocumentType } from '@/domain/types';
+import type { Attachment, Document, DocumentMetadata, DocumentType, Trip } from '@/domain/types';
 import type { Db } from './types';
 
 interface DocRow {
   id: string;
+  trip_id: string;
   original_name: string;
   title: string | null;
   type: string | null;
@@ -22,6 +23,13 @@ interface AttRow {
   size_bytes: number;
   checksum: string;
 }
+interface TripRow {
+  id: string;
+  name: string;
+  is_default: number;
+}
+
+const SELECTED_TRIP_KEY = 'selected_trip_id';
 
 const toAttachment = (r: AttRow): Attachment => ({
   id: r.id,
@@ -36,6 +44,7 @@ const toAttachment = (r: AttRow): Attachment => ({
 
 const toDocument = (r: DocRow, atts: Attachment[]): Document => ({
   id: r.id,
+  tripId: r.trip_id,
   originalName: r.original_name,
   title: r.title,
   type: r.type as DocumentType | null,
@@ -45,6 +54,8 @@ const toDocument = (r: DocRow, atts: Attachment[]): Document => ({
   storageKey: r.storage_key,
   attachments: atts,
 });
+
+const toTrip = (r: TripRow): Trip => ({ id: r.id, name: r.name, isDefault: r.is_default === 1 });
 
 async function insertAttachments(tx: Db, atts: Attachment[]): Promise<void> {
   for (const a of atts) {
@@ -108,9 +119,9 @@ export class DocumentRepository {
     await this.guard(() =>
       this.db.withTransaction(async (tx) => {
         await tx.runAsync(
-          `INSERT INTO documents (id, original_name, title, type, activity_date, imported_at, fingerprint, storage_key)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-          [doc.id, doc.originalName, doc.title, doc.type, doc.activityDate, doc.importedAt, doc.fingerprint, doc.storageKey],
+          `INSERT INTO documents (id, trip_id, original_name, title, type, activity_date, imported_at, fingerprint, storage_key)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [doc.id, doc.tripId, doc.originalName, doc.title, doc.type, doc.activityDate, doc.importedAt, doc.fingerprint, doc.storageKey],
         );
         await insertAttachments(tx, doc.attachments);
       }),
@@ -170,7 +181,7 @@ export class DocumentRepository {
 
   /**
    * Atomically points an existing document at a new set of files (Replace existing).
-   * Either every row changes or none do.
+   * Either every row changes or none do. The trip association is kept.
    */
   async swapFiles(
     id: string,
@@ -204,10 +215,91 @@ export class DocumentRepository {
     });
   }
 
+  /** Moves the whole entry (and therefore all of its attachments) to another trip. Files are not touched. */
+  async moveDocument(docId: string, tripId: string): Promise<void> {
+    await this.guard(() => this.db.runAsync('UPDATE documents SET trip_id = ? WHERE id = ?', [tripId, docId]));
+  }
+
   async allStorageKeys(): Promise<string[]> {
     return this.guard(async () => {
       const rows = await this.db.getAllAsync<{ storage_key: string }>('SELECT storage_key FROM documents');
       return rows.map((r) => r.storage_key);
+    });
+  }
+
+  // ---- Trips -------------------------------------------------------------------------------------------------
+
+  /** Default trip first, then custom trips alphabetically. */
+  async listTrips(): Promise<Trip[]> {
+    return this.guard(async () => {
+      const rows = await this.db.getAllAsync<TripRow>('SELECT * FROM trips ORDER BY is_default DESC, name COLLATE NOCASE');
+      return rows.map(toTrip);
+    });
+  }
+
+  async getTrip(id: string): Promise<Trip | null> {
+    return this.guard(async () => {
+      const row = await this.db.getFirstAsync<TripRow>('SELECT * FROM trips WHERE id = ?', [id]);
+      return row ? toTrip(row) : null;
+    });
+  }
+
+  async insertTrip(trip: Trip): Promise<void> {
+    await this.guard(() =>
+      this.db.runAsync('INSERT INTO trips (id, name, is_default) VALUES (?, ?, ?)', [trip.id, trip.name, trip.isDefault ? 1 : 0]),
+    );
+  }
+
+  async renameTrip(id: string, name: string): Promise<void> {
+    await this.guard(() => this.db.runAsync('UPDATE trips SET name = ? WHERE id = ?', [name, id]));
+  }
+
+  async getSelectedTripId(): Promise<string | null> {
+    return this.guard(async () => {
+      const row = await this.db.getFirstAsync<{ value: string }>('SELECT value FROM app_settings WHERE key = ?', [SELECTED_TRIP_KEY]);
+      return row?.value ?? null;
+    });
+  }
+
+  async setSelectedTripId(id: string): Promise<void> {
+    await this.guard(() =>
+      this.db.runAsync(
+        'INSERT INTO app_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+        [SELECTED_TRIP_KEY, id],
+      ),
+    );
+  }
+
+  /**
+   * Deletes a custom trip in one transaction.
+   * - `move`: its documents go to `moveTo` first (files untouched).
+   * - `delete`: its documents and attachment rows are removed too.
+   * If the trip was the selected one, `fallbackSelection` becomes selected in the same transaction.
+   * Returns the storage keys whose files should now be removed (empty for `move`).
+   */
+  async removeTrip(
+    id: string,
+    mode: { kind: 'move'; moveTo: string } | { kind: 'delete' },
+    fallbackSelection: string,
+  ): Promise<string[]> {
+    return this.guard(async () => {
+      let keys: string[] = [];
+      await this.db.withTransaction(async (tx) => {
+        if (mode.kind === 'move') {
+          await tx.runAsync('UPDATE documents SET trip_id = ? WHERE trip_id = ?', [mode.moveTo, id]);
+        } else {
+          const rows = await tx.getAllAsync<{ storage_key: string }>('SELECT storage_key FROM documents WHERE trip_id = ?', [id]);
+          keys = rows.map((r) => r.storage_key);
+          await tx.runAsync('DELETE FROM attachments WHERE document_id IN (SELECT id FROM documents WHERE trip_id = ?)', [id]);
+          await tx.runAsync('DELETE FROM documents WHERE trip_id = ?', [id]);
+        }
+        await tx.runAsync(
+          'UPDATE app_settings SET value = ? WHERE key = ? AND value = ?',
+          [fallbackSelection, SELECTED_TRIP_KEY, id],
+        );
+        await tx.runAsync('DELETE FROM trips WHERE id = ? AND is_default = 0', [id]);
+      });
+      return keys;
     });
   }
 }

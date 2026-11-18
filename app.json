@@ -19,6 +19,9 @@
       },
       "entitlements": {
         "com.apple.developer.default-data-protection": "NSFileProtectionComplete"
+      },
+      "runtimeVersion": {
+        "policy": "appVersion"
       }
     },
     "plugins": [
@@ -54,6 +57,14 @@
       "eas": {
         "projectId": "5e7c7a30-4616-4946-b632-b0d3e7c38aae"
       }
+    },
+    "updates": {
+      "url": "https://u.expo.dev/5e7c7a30-4616-4946-b632-b0d3e7c38aae"
+    },
+    "android": {
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
     }
   }
 }

@@ -11,6 +11,8 @@ export interface SheetAction {
   icon?: IconName;
   destructive?: boolean;
   onPress: () => void;
+  /** Optional trailing "•••" button that opens a contextual menu for this row (e.g. rename or delete a trip). */
+  onMore?: () => void;
 }
 
 export interface SheetConfig {
@@ -70,19 +72,31 @@ function SheetView({ config, onClose }: { config: SheetConfig; onClose: () => vo
             </View>
           )}
           {config.actions.map((a, i) => (
-            <Pressable
-              key={`${a.label}-${i}`}
-              accessibilityRole="button"
-              accessibilityLabel={a.sub ? `${a.label}, ${a.sub}` : a.label}
-              onPress={() => close(a.onPress)}
-              style={({ pressed }) => [styles.btn, (i > 0 || config.title || config.message) && styles.btnBorder, pressed && { backgroundColor: 'rgba(0,0,0,0.06)' }]}
-            >
-              {a.icon ? <Icon name={a.icon} size={24} color={a.destructive ? colors.red : colors.blue} /> : null}
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.btnText, a.destructive && { color: colors.red }]}>{a.label}</Text>
-                {a.sub ? <Text style={styles.btnSub}>{a.sub}</Text> : null}
-              </View>
-            </Pressable>
+            <View key={`${a.label}-${i}`} style={[styles.row, (i > 0 || config.title || config.message) && styles.btnBorder]}>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={a.sub ? `${a.label}, ${a.sub}` : a.label}
+                onPress={() => close(a.onPress)}
+                style={({ pressed }) => [styles.btn, styles.btnFlex, pressed && { backgroundColor: 'rgba(0,0,0,0.06)' }]}
+              >
+                {a.icon ? <Icon name={a.icon} size={24} color={a.destructive ? colors.red : colors.blue} /> : null}
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.btnText, a.destructive && { color: colors.red }]}>{a.label}</Text>
+                  {a.sub ? <Text style={styles.btnSub}>{a.sub}</Text> : null}
+                </View>
+              </Pressable>
+              {a.onMore ? (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={`More options for ${a.label}`}
+                  hitSlop={8}
+                  onPress={() => close(a.onMore)}
+                  style={({ pressed }) => [styles.more, pressed && { opacity: 0.5 }]}
+                >
+                  <Text style={styles.moreText}>•••</Text>
+                </Pressable>
+              ) : null}
+            </View>
           ))}
         </View>
         <Pressable accessibilityRole="button" style={styles.cancel} onPress={() => close(config.onCancel)}>
@@ -99,6 +113,10 @@ const styles = StyleSheet.create({
   head: { paddingVertical: 14, paddingHorizontal: 16, alignItems: 'center', gap: 3 },
   headTitle: { color: colors.label, fontSize: 14, fontWeight: '600' },
   headMsg: { color: colors.secondary, fontSize: 13, textAlign: 'center' },
+  row: { flexDirection: 'row', alignItems: 'center' },
+  btnFlex: { flex: 1 },
+  more: { minHeight: 60, paddingHorizontal: 18, justifyContent: 'center' },
+  moreText: { color: colors.secondary, fontSize: 16, letterSpacing: 1 },
   btn: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingHorizontal: 22, minHeight: 60 },
   btnBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.separator },
   btnText: { fontSize: 18, color: colors.blue },

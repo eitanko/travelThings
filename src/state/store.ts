@@ -1,5 +1,6 @@
 import { useEffect, useSyncExternalStore } from 'react';
-import type { Document, StagedFile } from '@/domain/types';
+import { DEFAULT_TRIP_ID } from '@/domain/trips';
+import type { Document, StagedFile, Trip } from '@/domain/types';
 import { getDocumentService } from '@/services/container';
 import { discardStagedFiles } from '@/services/importer';
 
@@ -34,11 +35,14 @@ export const useStagedFiles = () => useSyncExternalStore(importSession.subscribe
 /** Library snapshot shared by every screen. Any mutation calls notifyLibraryChanged() to refresh it. */
 export interface LibrarySnapshot {
   docs: Document[];
+  trips: Trip[];
+  /** The trip the main screen shows and new documents are saved into. */
+  selectedTripId: string;
   loading: boolean;
   error: Error | null;
 }
 
-let library: LibrarySnapshot = { docs: [], loading: true, error: null };
+let library: LibrarySnapshot = { docs: [], trips: [], selectedTripId: DEFAULT_TRIP_ID, loading: true, error: null };
 let libraryStarted = false;
 const libraryListeners = new Set<() => void>();
 
@@ -57,9 +61,10 @@ const subscribeLibrary = (l: () => void) => {
 export async function reloadLibrary(): Promise<void> {
   try {
     const svc = await getDocumentService();
-    setLibrary({ docs: await svc.list(), loading: false, error: null });
+    const [docs, trips, selectedTripId] = await Promise.all([svc.list(), svc.listTrips(), svc.selectedTripId()]);
+    setLibrary({ docs, trips, selectedTripId, loading: false, error: null });
   } catch (e) {
-    setLibrary({ docs: library.docs, loading: false, error: e instanceof Error ? e : new Error(String(e)) });
+    setLibrary({ ...library, loading: false, error: e instanceof Error ? e : new Error(String(e)) });
   }
 }
 

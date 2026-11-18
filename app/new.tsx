@@ -10,7 +10,8 @@ import { extensionOf } from '@/domain/validation';
 import { EMPTY_METADATA, type DocumentMetadata } from '@/domain/types';
 import type { CommitMode, PreparedImport } from '@/services/documentService';
 import { getDocumentService } from '@/services/container';
-import { importSession, notifyLibraryChanged, setFlash, useStagedFiles } from '@/state/store';
+import { openPreview } from '@/services/documentPreview';
+import { importSession, notifyLibraryChanged, setFlash, useLibrary, useStagedFiles } from '@/state/store';
 import { colors, shadow } from '@/theme';
 
 const baseName = (n: string) => {
@@ -22,6 +23,7 @@ export default function NewDocumentScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const staged = useStagedFiles();
+  const { selectedTripId } = useLibrary();
   const sheet = useActionSheet();
   const [meta, setMeta] = useState<DocumentMetadata>(EMPTY_METADATA);
   const [saving, setSaving] = useState(false);
@@ -51,7 +53,7 @@ export default function NewDocumentScreen() {
     setSaving(true);
     try {
       const svc = await getDocumentService();
-      const doc = await svc.commit(prepared, meta, mode);
+      const doc = await svc.commit(prepared, meta, mode, selectedTripId); // saved into the selected trip
       finish(doc.id); // success is reported only after files AND metadata are stored
     } catch (e) {
       setSaving(false);
@@ -135,7 +137,18 @@ export default function NewDocumentScreen() {
       />
       <ScrollView keyboardShouldPersistTaps="handled" contentInsetAdjustmentBehavior="automatic">
         <View style={{ marginHorizontal: 16, marginTop: 10 }}>
-          <PreviewCarousel items={items} height={210} showZoomPill onOpen={() => router.push({ pathname: '/viewer', params: { staged: '1' } })} />
+          <PreviewCarousel
+            items={items}
+            height={210}
+            showZoomPill
+            onOpen={(i) =>
+              openPreview(
+                staged.map((f) => f.uri),
+                i,
+                () => router.push({ pathname: '/viewer', params: { staged: '1', index: String(i) } }),
+              ).catch((e) => sheet.show(errorSheet(e)))
+            }
+          />
         </View>
         <DocumentForm value={meta} onChange={setMeta} disabled={saving} />
       </ScrollView>

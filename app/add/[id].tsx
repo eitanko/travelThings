@@ -8,6 +8,7 @@ import { errorSheet } from '@/components/showError';
 import { displayTitle } from '@/domain/documents';
 import type { PreparedImport } from '@/services/documentService';
 import { getDocumentService } from '@/services/container';
+import { openPreview } from '@/services/documentPreview';
 import { importSession, notifyLibraryChanged, setFlash, useDocument, useStagedFiles } from '@/state/store';
 import { colors, shadow } from '@/theme';
 
@@ -126,7 +127,18 @@ export default function AddAttachmentScreen() {
       />
       <ScrollView keyboardShouldPersistTaps="handled" contentInsetAdjustmentBehavior="automatic">
         <View style={{ marginHorizontal: 16, marginTop: 10 }}>
-          <PreviewCarousel items={items} height={210} showZoomPill onOpen={() => router.push({ pathname: '/viewer', params: { staged: '1' } })} />
+          <PreviewCarousel
+            items={items}
+            height={210}
+            showZoomPill
+            onOpen={(i) =>
+              openPreview(
+                staged.map((f) => f.uri),
+                i,
+                () => router.push({ pathname: '/viewer', params: { staged: '1', index: String(i) } }),
+              ).catch((e) => sheet.show(errorSheet(e)))
+            }
+          />
         </View>
         <Text style={styles.note}>
           {`Adds ${items.length === 1 ? 'this file' : `these ${items.length} files`} to “${displayTitle(doc)}”. Its title, type and date stay the same.`}

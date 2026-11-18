@@ -9,6 +9,7 @@ import { errorSheet } from '@/components/showError';
 import { attachmentKind } from '@/domain/documents';
 import type { Document, DocumentMetadata } from '@/domain/types';
 import { getDocumentService, getReadyDocumentService } from '@/services/container';
+import { openPreview } from '@/services/documentPreview';
 import { notifyLibraryChanged, setFlash, useDocument } from '@/state/store';
 import { colors, shadow } from '@/theme';
 
@@ -82,7 +83,13 @@ function EditForm({ doc }: { doc: Document }) {
               items={items}
               height={210}
               showZoomPill
-              onOpen={(i) => router.push({ pathname: '/viewer', params: { id: doc.id, index: String(i) } })}
+              onOpen={(i) =>
+                openPreview(
+                  doc.attachments.map((a) => getReadyDocumentService().uriFor(a)),
+                  i,
+                  () => router.push({ pathname: '/viewer', params: { id: doc.id, index: String(i) } }),
+                ).catch((e) => sheet.show(errorSheet(e)))
+              }
             />
           </View>
         )}

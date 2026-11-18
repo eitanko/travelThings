@@ -10,11 +10,13 @@ import { errorSheet } from '@/components/showError';
 import { diffDays, formatLong, relative } from '@/domain/dates';
 import { attachmentKind, displayTitle, typeInfo } from '@/domain/documents';
 import { AppError } from '@/domain/errors';
-import type { Attachment } from '@/domain/types';
-import { getDocumentService } from '@/services/container';
+import { DEFAULT_TRIP_NAME } from '@/domain/trips';
+import type { Attachment, Trip } from '@/domain/types';
+import { getDocumentService, getReadyDocumentService } from '@/services/container';
+import { openPreview } from '@/services/documentPreview';
 import type { Integrity } from '@/services/documentService';
 import { useAddFlow } from '@/state/addFlow';
-import { consumeFlash, notifyLibraryChanged, setFlash, useDocument } from '@/state/store';
+import { consumeFlash, notifyLibraryChanged, setFlash, useDocument, useLibrary } from '@/state/store';
 import { colors } from '@/theme';
 
 export default function DocumentDetailScreen() {
@@ -25,6 +27,7 @@ export default function DocumentDetailScreen() {
   const sheet = useActionSheet();
   const toast = useToast();
   const { openAddSheet } = useAddFlow(sheet.show, id);
+  const { trips } = useLibrary();
   const [items, setItems] = useState<PreviewItem[]>([]);
   const [integrity, setIntegrity] = useState<Integrity>('ok');
 
@@ -61,7 +64,45 @@ export default function DocumentDetailScreen() {
   const diff = doc.activityDate ? diffDays(doc.activityDate) : null;
   const subtitle = [T.label, doc.title?.trim() ? doc.originalName : ''].filter(Boolean).join(' · ');
 
-  const openAttachment = (index: number) => router.push({ pathname: '/viewer', params: { id: doc.id, index: String(index) } });
+  /** Opens Quick Look with every file of this entry, starting at `index`. Done returns to this screen. */
+  const tripName = trips.find((t) => t.id === doc.tripId)?.name ?? DEFAULT_TRIP_NAME;
+
+  const moveTo = async (t: Trip) => {
+    if (t.id === doc.tripId) return;
+    try {
+      const svc = await getDocumentService();
+      await svc.moveDocument(doc.id, t.id);
+      notifyLibraryChanged();
+      toast.show(`Moved to “${t.name}”`);
+    } catch (e) {
+      sheet.show(errorSheet(e));
+    }
+  };
+
+  /** "Move to trip": every file of this entry moves together. The files themselves are not copied or changed. */
+  const openMoveSheet = () =>
+    sheet.show({
+      title: 'Move to Trip',
+      message: 'The document and all of its files move together.',
+      actions: trips.map((t) => {
+        const current = t.id === doc.tripId;
+        return {
+          label: t.name,
+          sub: current ? 'Current trip' : undefined,
+          icon: current ? ('check' as const) : undefined,
+          onPress: () => void moveTo(t),
+        };
+      }),
+    });
+
+  const openAttachment = (index: number) => {
+    const svc = getReadyDocumentService();
+    openPreview(
+      doc.attachments.map((a) => svc.uriFor(a)),
+      index,
+      () => router.push({ pathname: '/viewer', params: { id: doc.id, index: String(index) } }),
+    ).catch((e) => sheet.show(errorSheet(e)));
+  };
 
   const confirmRemove = (a: Attachment) =>
     sheet.show({
@@ -121,7 +162,7 @@ export default function DocumentDetailScreen() {
       />
       <ScrollView contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: insets.bottom + 30 }}>
         {integrity === 'ok' && items.length > 0 ? (
-          <PreviewCarousel items={items} height={400} onOpen={(i) => router.push({ pathname: '/viewer', params: { id: doc.id, index: String(i) } })} />
+          <PreviewCarousel items={items} height={400} onOpen={openAttachment} />
         ) : integrity !== 'ok' ? (
           <View style={styles.missing} accessibilityRole="alert">
             <Icon name="alert" size={30} color={colors.red} />
@@ -149,6 +190,20 @@ export default function DocumentDetailScreen() {
             <Text style={styles.k}>Type</Text>
             <Text style={styles.v}>{T.label}</Text>
           </View>
+          <Pressable
+            onPress={openMoveSheet}
+            accessibilityRole="button"
+            accessibilityLabel={`Trip: ${tripName}. Move to another trip`}
+            style={({ pressed }) => [styles.kv, styles.kvBorder, pressed && { opacity: 0.6 }]}
+          >
+            <Text style={styles.k}>Trip</Text>
+            <View style={styles.tripValue}>
+              <Text style={styles.v} numberOfLines={1}>
+                {tripName}
+              </Text>
+              <Icon name="chevR" size={14} color={colors.chevron} />
+            </View>
+          </Pressable>
           <View style={[styles.kv, styles.kvBorder]}>
             <Text style={styles.k}>Activity date</Text>
             {doc.activityDate && diff !== null ? (
@@ -230,6 +285,7 @@ const styles = StyleSheet.create({
   kv: { flexDirection: 'row', justifyContent: 'space-between', gap: 16, paddingVertical: 14, paddingHorizontal: 16 },
   kvBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.separator, marginLeft: 16, paddingLeft: 0, paddingRight: 16 },
   k: { fontSize: 16, color: colors.secondary },
+  tripValue: { flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 },
   v: { fontSize: 16, fontWeight: '500', color: colors.label, textAlign: 'right' },
   small: { fontSize: 13, color: colors.secondary },
   sectionLabel: { marginTop: 22, marginLeft: 16, marginBottom: 6, fontSize: 13, color: colors.secondary, textTransform: 'uppercase' },

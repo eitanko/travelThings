@@ -8,7 +8,7 @@ export function PdfUnavailableCard({ message }: { message?: string }) {
     <View style={styles.box} accessibilityRole="alert">
       <Icon name="file" size={34} color={colors.secondary} />
       <Text style={styles.title}>PDF preview unavailable</Text>
-      <Text style={styles.msg}>{message ?? 'Viewing PDFs needs a TravelThings development build. It isn’t available in Expo Go.'}</Text>
+      <Text style={styles.msg}>{message ?? 'Tap to open the full PDF.'}</Text>
     </View>
   );
 }

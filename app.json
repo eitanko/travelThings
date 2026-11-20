@@ -18,7 +18,10 @@
         "LSSupportsOpeningDocumentsInPlace": false
       },
       "entitlements": {
-        "com.apple.developer.default-data-protection": "NSFileProtectionComplete"
+        "com.apple.developer.default-data-protection": "NSFileProtectionComplete",
+        "com.apple.security.application-groups": [
+          "group.com.eitankoren.travelthings"
+        ]
       },
       "runtimeVersion": {
         "policy": "appVersion"
@@ -39,6 +42,12 @@
         "react-native-document-scanner-plugin",
         {
           "cameraPermission": "TravelThings needs the camera to scan paper documents."
+        }
+      ],
+      [
+        "./plugins/withShareExtension",
+        {
+          "groupId": "group.com.eitankoren.travelthings"
         }
       ]
     ],

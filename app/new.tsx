@@ -13,7 +13,9 @@ import { getDocumentService } from '@/services/container';
 import { openPreview } from '@/services/documentPreview';
 import { removeTempFile } from '@/services/importer';
 import { rotateStagedImage } from '@/services/imageRotation';
-import { importSession, notifyLibraryChanged, setFlash, useLibrary, useStagedFiles } from '@/state/store';
+import { DEFAULT_TRIP_ID } from '@/domain/trips';
+import { removeShare } from '@/services/sharedInbox';
+import { importSession, notifyLibraryChanged, setFlash, shareSession, useLibrary, useStagedFiles } from '@/state/store';
 import { colors, shadow } from '@/theme';
 
 const baseName = (n: string) => {
@@ -25,7 +27,11 @@ export default function NewDocumentScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const staged = useStagedFiles();
-  const { selectedTripId } = useLibrary();
+  const { selectedTripId, trips } = useLibrary();
+  // Imports from the iOS share menu default to My Documents; in-app imports use the trip being viewed.
+  const [shareId] = useState(() => shareSession.get()?.id ?? null);
+  const [destId, setDestId] = useState<string>(shareId ? DEFAULT_TRIP_ID : selectedTripId);
+  const destName = trips.find((t) => t.id === destId)?.name ?? 'My Documents';
   const sheet = useActionSheet();
   const [meta, setMeta] = useState<DocumentMetadata>(EMPTY_METADATA);
   const [saving, setSaving] = useState(false);
@@ -64,9 +70,17 @@ export default function NewDocumentScreen() {
     }
   };
 
+  // The shared files are deleted only once the event is durably committed or the user discards the import.
+  const endShare = () => {
+    if (!shareId) return;
+    removeShare(shareId);
+    shareSession.set(null);
+  };
+
   const finish = (docId: string) => {
     leaving.current = true;
     importSession.clear();
+    endShare();
     notifyLibraryChanged();
     setFlash({ message: 'Document saved', highlightId: docId });
     router.dismissAll();
@@ -76,7 +90,7 @@ export default function NewDocumentScreen() {
     setSaving(true);
     try {
       const svc = await getDocumentService();
-      const doc = await svc.commit(prepared, meta, mode, selectedTripId); // saved into the selected trip
+      const doc = await svc.commit(prepared, meta, mode, destId);
       finish(doc.id); // success is reported only after files AND metadata are stored
     } catch (e) {
       setSaving(false);
@@ -139,7 +153,8 @@ export default function NewDocumentScreen() {
           onPress: () => {
             leaving.current = true;
             importSession.clear();
-                    router.back();
+            endShare();
+            router.back();
           },
         },
       ],
@@ -175,6 +190,24 @@ export default function NewDocumentScreen() {
             }
           />
         </View>
+        {shareId && trips.length > 1 && (
+          <Pressable
+            style={styles.dest}
+            accessibilityRole="button"
+            accessibilityLabel={`Destination trip: ${destName}`}
+            disabled={saving}
+            onPress={() =>
+              sheet.show({
+                title: 'Save to',
+                actions: trips.map((t) => ({ label: t.name, onPress: () => setDestId(t.id) })),
+                cancelLabel: 'Cancel',
+              })
+            }
+          >
+            <Text style={styles.destLabel}>Save to</Text>
+            <Text style={styles.destValue}>{destName}</Text>
+          </Pressable>
+        )}
         <DocumentForm value={meta} onChange={setMeta} disabled={saving} />
       </ScrollView>
       <View style={[styles.bottom, { paddingBottom: insets.bottom + 12 }]}>
@@ -195,6 +228,9 @@ export default function NewDocumentScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
+  dest: { marginHorizontal: 16, marginTop: 12, padding: 14, borderRadius: 12, backgroundColor: '#fff', flexDirection: 'row', justifyContent: 'space-between' },
+  destLabel: { fontSize: 17, color: colors.label },
+  destValue: { fontSize: 17, color: colors.blue },
   headerBtn: { color: colors.blue, fontSize: 17 },
   bottom: { paddingHorizontal: 16, paddingTop: 12, backgroundColor: 'rgba(242,242,247,0.92)', borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.separator },
   primary: { height: 54, borderRadius: 15, backgroundColor: colors.blue, alignItems: 'center', justifyContent: 'center' },

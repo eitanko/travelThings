@@ -2,6 +2,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ShareInboxWatcher } from '@/components/ShareInboxWatcher';
 import { startBoot, useBoot } from '@/state/boot';
 import { colors } from '@/theme';
 
@@ -42,6 +43,7 @@ export default function RootLayout() {
         <Stack.Screen name="document/[id]" options={{ title: '', headerBackTitle: 'Documents', headerShadowVisible: false }} />
         <Stack.Screen name="viewer" options={{ presentation: 'fullScreenModal', headerShown: false, animation: 'fade' }} />
       </Stack>
+      <ShareInboxWatcher />
     </>
   );
 }

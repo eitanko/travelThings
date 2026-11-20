@@ -107,3 +107,12 @@ export const consumeFlash = () => {
   flash = null;
   return f;
 };
+
+/** The pending iOS share currently open in the review screen, if any. It is deleted only after save or discard. */
+let activeShare: { id: string } | null = null;
+export const shareSession = {
+  get: () => activeShare,
+  set(id: string | null) {
+    activeShare = id ? { id } : null;
+  },
+};

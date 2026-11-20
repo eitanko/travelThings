@@ -11,7 +11,7 @@ export interface TypeInfo {
 
 export type IconName =
   | 'plane' | 'bed' | 'bus' | 'ticket' | 'passport' | 'visa' | 'file' | 'plus' | 'search'
-  | 'chevR' | 'chevL' | 'x' | 'camera' | 'image' | 'scan' | 'folder' | 'layers' | 'check' | 'expand' | 'alert';
+  | 'chevR' | 'chevL' | 'x' | 'camera' | 'image' | 'scan' | 'folder' | 'layers' | 'check' | 'expand' | 'alert' | 'rotate';
 
 /** Colors/icons ported from the HTML prototype's TYPES table. */
 export const TYPE_INFO: Record<DocumentType, TypeInfo> = {

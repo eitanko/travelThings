@@ -21,6 +21,11 @@ export const importSession = {
     emitStaged();
     discardStagedFiles(old);
   },
+  /** Swaps one staged file in place (used by rotation). The other files keep their order. */
+  replaceAt(index: number, file: StagedFile) {
+    staged = staged.map((f, i) => (i === index ? file : f));
+    emitStaged();
+  },
   get: () => staged,
   subscribe(l: () => void) {
     stagedListeners.add(l);

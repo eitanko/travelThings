@@ -7,9 +7,13 @@ import { DocumentForm } from '@/components/DocumentForm';
 import { PreviewCarousel, type PreviewItem } from '@/components/PreviewCarousel';
 import { errorSheet } from '@/components/showError';
 import { attachmentKind } from '@/domain/documents';
+import { resolveMimeType } from '@/domain/validation';
 import type { Document, DocumentMetadata } from '@/domain/types';
+import type { RotationChange } from '@/services/documentService';
 import { getDocumentService, getReadyDocumentService } from '@/services/container';
 import { openPreview } from '@/services/documentPreview';
+import { removeTempFile } from '@/services/importer';
+import { renderRotatedCopy } from '@/services/imageRotation';
 import { notifyLibraryChanged, setFlash, useDocument } from '@/state/store';
 import { colors, shadow } from '@/theme';
 
@@ -43,18 +47,46 @@ function EditForm({ doc }: { doc: Document }) {
     activityDate: doc.activityDate,
   }));
   const [saving, setSaving] = useState(false);
+  // Extra clockwise quarter turns per attachment, not saved yet. Cancelling simply drops them.
+  const [pending, setPending] = useState<Record<string, number>>({});
 
   const items: PreviewItem[] = useMemo(() => {
     const svc = getReadyDocumentService();
-    return doc.attachments.map((a) => ({ uri: svc.uriFor(a), name: a.originalName, kind: attachmentKind(a) }));
-  }, [doc]);
+    return doc.attachments.map((a) => ({ uri: svc.uriFor(a), name: a.originalName, kind: attachmentKind(a), turns: pending[a.id] ?? 0 }));
+  }, [doc, pending]);
+
+  // Turns one image 90° clockwise in the preview right away. Nothing is rendered or stored until Save.
+  const rotate = (index: number) => {
+    const a = doc.attachments[index];
+    if (!a || saving || attachmentKind(a) !== 'image') return;
+    setPending((p) => ({ ...p, [a.id]: (((p[a.id] ?? 0) + 1) % 4) }));
+  };
 
   const save = async () => {
     if (saving) return;
     setSaving(true);
     try {
       const svc = await getDocumentService();
-      await svc.updateMetadata(doc.id, meta);
+      // Render corrected copies from the untouched originals, then store everything together.
+      const rendered: string[] = [];
+      try {
+        const changes: RotationChange[] = [];
+        for (const a of doc.attachments) {
+          const total = (a.rotationTurns + (pending[a.id] ?? 0)) % 4;
+          if (total === a.rotationTurns) continue;
+          if (total === 0) {
+            changes.push({ attachmentId: a.id, turns: 0 });
+            continue;
+          }
+          const copy = await renderRotatedCopy(svc.rotationSourceUri(a), total, a.originalName, a.originalRelativePath ? resolveMimeType(a.originalRelativePath) : a.mimeType);
+          rendered.push(copy.uri);
+          changes.push({ attachmentId: a.id, turns: total, rendered: copy });
+        }
+        if (changes.length > 0) await svc.applyRotations(doc.id, changes);
+        await svc.updateMetadata(doc.id, meta);
+      } finally {
+        rendered.forEach(removeTempFile);
+      }
       notifyLibraryChanged();
       setFlash({ message: 'Changes saved' });
       router.back();
@@ -83,6 +115,7 @@ function EditForm({ doc }: { doc: Document }) {
               items={items}
               height={210}
               showZoomPill
+              onRotate={rotate}
               onOpen={(i) =>
                 openPreview(
                   doc.attachments.map((a) => getReadyDocumentService().uriFor(a)),

@@ -26,6 +26,13 @@ export interface Attachment {
   sizeBytes: number;
   /** SHA-256 hex of the stored bytes. */
   checksum: string;
+  /**
+   * Path of the untouched original capture, when the user rotated this file before saving. `relativePath` then holds
+   * the corrected copy. Null when the file was never rotated. Never shown in the library; kept so nothing is lost.
+   */
+  originalRelativePath: string | null;
+  /** Clockwise quarter turns (0–3) applied to the original to get `relativePath`. 0 when never rotated. */
+  rotationTurns: number;
 }
 
 /** A user-created folder for documents. `My Documents` is the permanent default trip. */
@@ -66,6 +73,13 @@ export interface StagedFile {
   mimeType: string;
   /** Size reported by the picker, if any. The real size is re-read from disk before copying. */
   size?: number;
+  /** Untouched capture, set once the user starts rotating this file. `uri` then points at the rotated copy. */
+  originalUri?: string;
+  /** Clockwise quarter turns applied to `originalUri` (0–3). Undefined or 0 means `uri` is the original. */
+  turns?: number;
+  /** Name and type of the untouched capture, kept so the original is stored with its real format. */
+  originalName?: string;
+  originalMimeType?: string;
 }
 
 export const EMPTY_METADATA: DocumentMetadata = {

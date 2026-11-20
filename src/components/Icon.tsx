@@ -43,6 +43,7 @@ const ICONS: Record<IconName, El[]> = {
   check: [p('m5 12.5 4.5 4.5L19 7.5')],
   expand: [p('M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5')],
   alert: [{ t: 'c', cx: 12, cy: 12, r: 9 }, p('M12 7v6M12 16.5v.5')],
+  rotate: [p('M21 12a9 9 0 1 1-9-9c2.5 0 4.9 1 6.7 2.7L21 8'), p('M21 3v5h-5')],
 };
 
 interface Props {

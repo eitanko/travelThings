@@ -29,9 +29,15 @@ export interface SheetConfig {
  */
 export function useActionSheet() {
   const [config, setConfig] = useState<SheetConfig | null>(null);
-  const show = useCallback((c: SheetConfig) => setConfig(c), []);
+  // Each show() gets a new instance. Otherwise a sheet that is shown right after another one closes (for example a
+  // trip menu opened from the trip sheet) reuses the old instance, whose closing state and entrance animation are stale.
+  const [instance, setInstance] = useState(0);
+  const show = useCallback((c: SheetConfig) => {
+    setInstance((n) => n + 1);
+    setConfig(c);
+  }, []);
   const hide = useCallback(() => setConfig(null), []);
-  const element = config ? <SheetView config={config} onClose={hide} /> : null;
+  const element = config ? <SheetView key={instance} config={config} onClose={hide} /> : null;
   return { show, hide, element };
 }
 

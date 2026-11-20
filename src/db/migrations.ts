@@ -54,6 +54,15 @@ export const MIGRATIONS: string[] = [
   CREATE TRIGGER documents_trip_required_update BEFORE UPDATE OF trip_id ON documents WHEN NEW.trip_id IS NULL
   BEGIN SELECT RAISE(ABORT, 'documents.trip_id is required'); END;
   `,
+  // v3 — Rotation. Keeps the untouched original of a file whose orientation was corrected before saving.
+  // Nullable: existing rows and never-rotated files have no original.
+  `
+  ALTER TABLE attachments ADD COLUMN original_relative_path TEXT;
+  `,
+  // v4 — Remembers how far a saved image has been turned from its original (0–3 clockwise quarter turns).
+  `
+  ALTER TABLE attachments ADD COLUMN rotation_turns INTEGER NOT NULL DEFAULT 0;
+  `,
 ];
 
 export async function migrate(db: Db): Promise<void> {

@@ -11,6 +11,8 @@ import { EMPTY_METADATA, type DocumentMetadata } from '@/domain/types';
 import type { CommitMode, PreparedImport } from '@/services/documentService';
 import { getDocumentService } from '@/services/container';
 import { openPreview } from '@/services/documentPreview';
+import { removeTempFile } from '@/services/importer';
+import { rotateStagedImage } from '@/services/imageRotation';
 import { importSession, notifyLibraryChanged, setFlash, useLibrary, useStagedFiles } from '@/state/store';
 import { colors, shadow } from '@/theme';
 
@@ -27,6 +29,7 @@ export default function NewDocumentScreen() {
   const sheet = useActionSheet();
   const [meta, setMeta] = useState<DocumentMetadata>(EMPTY_METADATA);
   const [saving, setSaving] = useState(false);
+  const [rotating, setRotating] = useState(false);
 
   // Set when this screen is already on its way out (saved or discarded) so it never navigates back twice.
   const leaving = useRef(false);
@@ -40,6 +43,26 @@ export default function NewDocumentScreen() {
     () => staged.map((f) => ({ uri: f.uri, name: f.name, kind: f.mimeType === 'application/pdf' ? 'pdf' : 'image' })),
     [staged],
   );
+
+  // Turns one page 90° clockwise. Only that page changes; the original capture is kept untouched.
+  const rotate = async (index: number) => {
+    const current = importSession.get()[index];
+    if (rotating || saving || !current || current.mimeType === 'application/pdf') return;
+    setRotating(true);
+    try {
+      const next = await rotateStagedImage(current);
+      // The user may have discarded the import while this turn was rendering. Then the result is not wanted.
+      if (importSession.get()[index] !== current) {
+        removeTempFile(next.uri);
+        return;
+      }
+      importSession.replaceAt(index, next);
+    } catch (e) {
+      sheet.show(errorSheet(e));
+    } finally {
+      setRotating(false);
+    }
+  };
 
   const finish = (docId: string) => {
     leaving.current = true;
@@ -116,7 +139,7 @@ export default function NewDocumentScreen() {
           onPress: () => {
             leaving.current = true;
             importSession.clear();
-            router.back();
+                    router.back();
           },
         },
       ],
@@ -141,6 +164,8 @@ export default function NewDocumentScreen() {
             items={items}
             height={210}
             showZoomPill
+            onRotate={(i) => void rotate(i)}
+            rotating={rotating}
             onOpen={(i) =>
               openPreview(
                 staged.map((f) => f.uri),
@@ -155,7 +180,7 @@ export default function NewDocumentScreen() {
       <View style={[styles.bottom, { paddingBottom: insets.bottom + 12 }]}>
         <Pressable
           onPress={() => void save()}
-          disabled={saving}
+          disabled={saving || rotating}
           accessibilityRole="button"
           accessibilityLabel="Save Document"
           style={({ pressed }) => [styles.primary, shadow.primary, pressed && { transform: [{ scale: 0.985 }] }, saving && { opacity: 0.8 }]}

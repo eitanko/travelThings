@@ -22,6 +22,8 @@ interface AttRow {
   mime_type: string;
   size_bytes: number;
   checksum: string;
+  original_relative_path: string | null;
+  rotation_turns: number;
 }
 interface TripRow {
   id: string;
@@ -40,6 +42,8 @@ const toAttachment = (r: AttRow): Attachment => ({
   mimeType: r.mime_type,
   sizeBytes: r.size_bytes,
   checksum: r.checksum,
+  originalRelativePath: r.original_relative_path ?? null,
+  rotationTurns: r.rotation_turns ?? 0,
 });
 
 const toDocument = (r: DocRow, atts: Attachment[]): Document => ({
@@ -60,9 +64,20 @@ const toTrip = (r: TripRow): Trip => ({ id: r.id, name: r.name, isDefault: r.is_
 async function insertAttachments(tx: Db, atts: Attachment[]): Promise<void> {
   for (const a of atts) {
     await tx.runAsync(
-      `INSERT INTO attachments (id, document_id, position, original_name, relative_path, mime_type, size_bytes, checksum)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [a.id, a.documentId, a.position, a.originalName, a.relativePath, a.mimeType, a.sizeBytes, a.checksum],
+      `INSERT INTO attachments (id, document_id, position, original_name, relative_path, mime_type, size_bytes, checksum, original_relative_path, rotation_turns)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        a.id,
+        a.documentId,
+        a.position,
+        a.originalName,
+        a.relativePath,
+        a.mimeType,
+        a.sizeBytes,
+        a.checksum,
+        a.originalRelativePath ?? null,
+        a.rotationTurns ?? 0,
+      ],
     );
   }
 }
@@ -154,17 +169,18 @@ export class DocumentRepository {
 
   /**
    * Removes one attachment row, updates the fingerprint and the display fallback name, in one transaction.
-   * Returns the removed file's relative path, or null if the attachment did not belong to the document.
+   * Returns the removed files' relative paths (the file and its kept original, if any), or null if the attachment
+   * did not belong to the document.
    */
   async removeAttachment(
     docId: string,
     attachmentId: string,
     remaining: { fingerprint: string; originalName: string },
-  ): Promise<string | null> {
+  ): Promise<string[] | null> {
     return this.guard(() =>
       this.db.withTransaction(async (tx) => {
-        const row = await tx.getFirstAsync<{ relative_path: string }>(
-          'SELECT relative_path FROM attachments WHERE id = ? AND document_id = ?',
+        const row = await tx.getFirstAsync<{ relative_path: string; original_relative_path: string | null }>(
+          'SELECT relative_path, original_relative_path FROM attachments WHERE id = ? AND document_id = ?',
           [attachmentId, docId],
         );
         if (!row) return null;
@@ -174,7 +190,30 @@ export class DocumentRepository {
           remaining.originalName,
           docId,
         ]);
-        return row.relative_path;
+        return [row.relative_path, row.original_relative_path].filter((p): p is string => !!p);
+      }),
+    );
+  }
+
+  /**
+   * Points saved attachments at their re-oriented files and updates the content fingerprint, in one transaction.
+   * Position, display name, the document's metadata and every other attachment are not touched.
+   */
+  async updateAttachmentFiles(
+    docId: string,
+    updates: Pick<Attachment, 'id' | 'relativePath' | 'originalRelativePath' | 'rotationTurns' | 'mimeType' | 'sizeBytes' | 'checksum'>[],
+    fingerprint: string,
+  ): Promise<void> {
+    await this.guard(() =>
+      this.db.withTransaction(async (tx) => {
+        for (const u of updates) {
+          await tx.runAsync(
+            `UPDATE attachments SET relative_path = ?, original_relative_path = ?, rotation_turns = ?, mime_type = ?,
+               size_bytes = ?, checksum = ? WHERE id = ? AND document_id = ?`,
+            [u.relativePath, u.originalRelativePath, u.rotationTurns, u.mimeType, u.sizeBytes, u.checksum, u.id, docId],
+          );
+        }
+        await tx.runAsync('UPDATE documents SET fingerprint = ? WHERE id = ?', [fingerprint, docId]);
       }),
     );
   }

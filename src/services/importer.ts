@@ -20,16 +20,20 @@ const asFileUri = (p: string) => (p.startsWith('file://') || p.includes('://') ?
  * and never the user's originals. Safe to call after a successful save or when the user discards the import.
  */
 export function discardStagedFiles(files: StagedFile[]): void {
-  for (const f of files) {
-    try {
-      const inTemp = f.uri.startsWith(Paths.cache.uri) || /\/tmp\//.test(f.uri);
-      const inPermanent = f.uri.startsWith(Paths.document.uri);
-      if (!inTemp || inPermanent) continue;
-      const file = new File(f.uri);
-      if (file.exists) file.delete();
-    } catch {
-      /* the OS purges cache/tmp on its own */
-    }
+  const uris = new Set(files.flatMap((f) => [f.uri, f.originalUri].filter((u): u is string => !!u)));
+  for (const uri of uris) removeTempFile(uri);
+}
+
+/** Deletes one temporary file, but only if it is in a cache/tmp folder and not in permanent storage. */
+export function removeTempFile(uri: string): void {
+  try {
+    const inTemp = uri.startsWith(Paths.cache.uri) || /\/tmp\//.test(uri);
+    const inPermanent = uri.startsWith(Paths.document.uri);
+    if (!inTemp || inPermanent) return;
+    const file = new File(uri);
+    if (file.exists) file.delete();
+  } catch {
+    /* the OS purges cache/tmp on its own */
   }
 }
 

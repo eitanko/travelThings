@@ -1,12 +1,24 @@
 import SwiftUI
 
+/// Semantic colors. Each resolves per appearance, so the extension follows the system light/dark setting live.
+/// Values mirror src/theme/index.ts in the app.
 enum TT {
-  static let bg = Color(red: 242 / 255, green: 242 / 255, blue: 247 / 255)
-  static let blue = Color(red: 0, green: 122 / 255, blue: 1)
-  static let blueTint = Color(red: 234 / 255, green: 243 / 255, blue: 1)
-  static let label = Color(red: 17 / 255, green: 17 / 255, blue: 20 / 255)
-  static let secondary = Color(red: 142 / 255, green: 142 / 255, blue: 147 / 255)
-  static let red = Color(red: 1, green: 59 / 255, blue: 48 / 255)
+  private static func dynamic(light: (Double, Double, Double), dark: (Double, Double, Double)) -> Color {
+    Color(UIColor { traits in
+      let c = traits.userInterfaceStyle == .dark ? dark : light
+      return UIColor(red: c.0 / 255, green: c.1 / 255, blue: c.2 / 255, alpha: 1)
+    })
+  }
+
+  static let bg = dynamic(light: (242, 242, 247), dark: (0, 0, 0))
+  /// Surface for fields and chips that sit on `bg`.
+  static let card = dynamic(light: (255, 255, 255), dark: (28, 28, 30))
+  static let blue = dynamic(light: (0, 122, 255), dark: (10, 132, 255))
+  static let blueTint = dynamic(light: (234, 243, 255), dark: (11, 42, 74))
+  static let label = dynamic(light: (17, 17, 20), dark: (242, 242, 247))
+  static let secondary = dynamic(light: (142, 142, 147), dark: (152, 152, 159))
+  static let placeholder = dynamic(light: (176, 176, 181), dark: (110, 110, 115))
+  static let red = dynamic(light: (255, 59, 48), dark: (255, 69, 58))
 }
 
 struct ReviewView: View {
@@ -89,7 +101,6 @@ struct ReviewView: View {
       }
     }
     .tint(TT.blue)
-    .preferredColorScheme(.light)
   }
 
   // MARK: Pieces
@@ -186,7 +197,7 @@ struct ReviewView: View {
         Spacer()
         if model.trips.count > 1 { Image(systemName: "chevron.up.chevron.down").font(.footnote).foregroundColor(TT.secondary) }
       }
-      .font(.system(size: 17)).padding(14).frame(minHeight: 50).background(Color.white).clipShape(RoundedRectangle(cornerRadius: 14))
+      .font(.system(size: 17)).padding(14).frame(minHeight: 50).background(TT.card).clipShape(RoundedRectangle(cornerRadius: 14))
     }
     .disabled(model.trips.count < 2)
     .accessibilityLabel("Save to \(model.tripName)")
@@ -204,7 +215,7 @@ struct ReviewView: View {
         }.accessibilityLabel("Clear title")
       }
     }
-    .padding(.leading, 14).padding(.trailing, 8).frame(minHeight: 50).background(Color.white).clipShape(RoundedRectangle(cornerRadius: 14))
+    .padding(.leading, 14).padding(.trailing, 8).frame(minHeight: 50).background(TT.card).clipShape(RoundedRectangle(cornerRadius: 14))
   }
 
   private var typeChips: some View {
@@ -218,7 +229,7 @@ struct ReviewView: View {
           }
           .foregroundColor(on ? TT.blue : TT.label)
           .padding(.vertical, 10).padding(.horizontal, 14)
-          .background(Capsule().fill(on ? TT.blueTint : Color.white))
+          .background(Capsule().fill(on ? TT.blueTint : TT.card))
           .overlay(Capsule().stroke(on ? TT.blue : Color.clear, lineWidth: 1.5))
         }
         .accessibilityLabel(t.label)
@@ -239,12 +250,12 @@ struct ReviewView: View {
               .frame(width: 26, height: 26).background(Circle().fill(Color.gray.opacity(0.4)))
           }.accessibilityLabel("Remove date")
         }
-        .padding(.leading, 14).padding(.trailing, 8).frame(minHeight: 50).background(Color.white).clipShape(RoundedRectangle(cornerRadius: 14))
+        .padding(.leading, 14).padding(.trailing, 8).frame(minHeight: 50).background(TT.card).clipShape(RoundedRectangle(cornerRadius: 14))
       } else {
         Button { model.date = Date() } label: {
-          Text("Add date (optional)").font(.system(size: 17)).foregroundColor(Color(white: 0.69))
+          Text("Add date (optional)").font(.system(size: 17)).foregroundColor(TT.placeholder)
             .frame(maxWidth: .infinity, alignment: .leading).padding(14).frame(minHeight: 50)
-            .background(Color.white).clipShape(RoundedRectangle(cornerRadius: 14))
+            .background(TT.card).clipShape(RoundedRectangle(cornerRadius: 14))
         }.accessibilityLabel("Add activity date, optional")
       }
       Text(model.date == nil ? "Optional — the day this document is needed, e.g. a flight or check-in day." : "")
@@ -261,7 +272,7 @@ struct PreviewCard: View {
   var body: some View {
     VStack(spacing: 6) {
       ZStack(alignment: .topTrailing) {
-        RoundedRectangle(cornerRadius: 16).fill(Color.white)
+        RoundedRectangle(cornerRadius: 16).fill(Color.white) // stays white: documents keep their own look
         content
         if count > 1 {
           Button { model.remove(item.id) } label: {

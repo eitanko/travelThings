@@ -10,13 +10,14 @@ import type { PreparedImport } from '@/services/documentService';
 import { getDocumentService } from '@/services/container';
 import { openPreview } from '@/services/documentPreview';
 import { importSession, notifyLibraryChanged, setFlash, useDocument, useStagedFiles } from '@/state/store';
-import { colors, shadow } from '@/theme';
+import { type Palette, useThemedStyles, shadow } from '@/theme';
 
 /**
  * "+ Add another document": previews the files just picked and attaches them to an existing entry.
  * Only the files are added. Title, type, activity date and the current attachments are not changed.
  */
 export default function AddAttachmentScreen() {
+  const { colors, styles } = useThemedStyles(makeStyles);
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -152,7 +153,7 @@ export default function AddAttachmentScreen() {
           accessibilityLabel="Add to Document"
           style={({ pressed }) => [styles.primary, shadow.primary, pressed && { transform: [{ scale: 0.985 }] }, saving && { opacity: 0.8 }]}
         >
-          {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryText}>Add to Document</Text>}
+          {saving ? <ActivityIndicator color={colors.onAccent} /> : <Text style={styles.primaryText}>Add to Document</Text>}
         </Pressable>
       </View>
       {sheet.element}
@@ -160,11 +161,12 @@ export default function AddAttachmentScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   headerBtn: { color: colors.blue, fontSize: 17 },
   note: { marginHorizontal: 20, marginTop: 14, color: colors.secondary, fontSize: 14, lineHeight: 19 },
-  bottom: { paddingHorizontal: 16, paddingTop: 12, backgroundColor: 'rgba(242,242,247,0.92)', borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.separator },
+  bottom: { paddingHorizontal: 16, paddingTop: 12, backgroundColor: colors.bottomBar, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.separator },
   primary: { height: 54, borderRadius: 15, backgroundColor: colors.blue, alignItems: 'center', justifyContent: 'center' },
-  primaryText: { color: '#fff', fontSize: 17, fontWeight: '600' },
+  primaryText: { color: colors.onAccent, fontSize: 17, fontWeight: '600' },
 });

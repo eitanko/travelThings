@@ -1,6 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, shadow } from '@/theme';
+import { type Palette, useThemedStyles, shadow } from '@/theme';
 import { Icon } from './Icon';
 
 interface Props {
@@ -11,6 +11,7 @@ interface Props {
 
 /** Empty library state (spec AT-11): explanation plus a prominent Add Document action. */
 export function EmptyState({ onAdd, onLoadSamples }: Props) {
+  const { colors, styles } = useThemedStyles(makeStyles);
   return (
     <View style={styles.wrap}>
       <View style={styles.badge}>
@@ -28,7 +29,7 @@ export function EmptyState({ onAdd, onLoadSamples }: Props) {
         accessibilityLabel="Add Document"
         style={({ pressed }) => [styles.btn, shadow.primary, pressed && { transform: [{ scale: 0.985 }] }]}
       >
-        <Icon name="plus" size={20} color="#fff" strokeWidth={2.4} />
+        <Icon name="plus" size={20} color={colors.onAccent} strokeWidth={2.4} />
         <Text style={styles.btnText}>Add Document</Text>
       </Pressable>
       {onLoadSamples ? (
@@ -40,12 +41,13 @@ export function EmptyState({ onAdd, onLoadSamples }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
   wrap: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 36, paddingBottom: 80 },
   badge: { width: 84, height: 84, borderRadius: 24, backgroundColor: colors.blueTint, alignItems: 'center', justifyContent: 'center', marginBottom: 22 },
   title: { fontSize: 22, fontWeight: '700', color: colors.label, textAlign: 'center', letterSpacing: -0.2 },
   desc: { fontSize: 15, lineHeight: 21, color: colors.secondary, textAlign: 'center', marginTop: 10, marginBottom: 28 },
   btn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, height: 54, paddingHorizontal: 28, borderRadius: 15, backgroundColor: colors.blue },
-  btnText: { color: '#fff', fontSize: 17, fontWeight: '600' },
+  btnText: { color: colors.onAccent, fontSize: 17, fontWeight: '600' },
   dev: { color: colors.secondary, fontSize: 13, textDecorationLine: 'underline' },
 });

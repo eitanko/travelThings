@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { diffDays, formatShort, relative } from '@/domain/dates';
 import { displayTitle, typeInfo } from '@/domain/documents';
 import type { Document } from '@/domain/types';
-import { colors, font } from '@/theme';
+import { type Palette, useThemedStyles, useTypeTint, font } from '@/theme';
 import { Icon } from './Icon';
 
 interface Props {
@@ -14,7 +14,9 @@ interface Props {
 }
 
 export function DocumentRow({ doc, first, onPress, highlighted }: Props) {
+  const { colors, styles } = useThemedStyles(makeStyles);
   const T = typeInfo(doc);
+  const tint = useTypeTint(doc.type);
   const n = doc.attachments.length;
   const diff = doc.activityDate ? diffDays(doc.activityDate) : null;
   const title = displayTitle(doc);
@@ -28,8 +30,8 @@ export function DocumentRow({ doc, first, onPress, highlighted }: Props) {
       style={({ pressed }) => [styles.row, highlighted && { backgroundColor: colors.highlight }, pressed && { backgroundColor: colors.rowPress }]}
     >
       {!first && <View style={styles.divider} />}
-      <View style={[styles.ico, { backgroundColor: T.background }]}>
-        <Icon name={T.icon} size={22} color={T.color} />
+      <View style={[styles.ico, { backgroundColor: tint.background }]}>
+        <Icon name={T.icon} size={22} color={tint.color} />
       </View>
       <View style={styles.main}>
         <View style={styles.titleRow}>
@@ -58,7 +60,8 @@ export function DocumentRow({ doc, first, onPress, highlighted }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, paddingHorizontal: 14, minHeight: 68 },
   divider: { position: 'absolute', top: 0, left: 70, right: 0, height: StyleSheet.hairlineWidth, backgroundColor: colors.separator },
   ico: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },

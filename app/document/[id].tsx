@@ -17,9 +17,10 @@ import { openPreview } from '@/services/documentPreview';
 import type { Integrity } from '@/services/documentService';
 import { useAddFlow } from '@/state/addFlow';
 import { consumeFlash, notifyLibraryChanged, setFlash, useDocument, useLibrary } from '@/state/store';
-import { colors } from '@/theme';
+import { type Palette, useThemedStyles, useTypeTint } from '@/theme';
 
 export default function DocumentDetailScreen() {
+  const { colors, styles } = useThemedStyles(makeStyles);
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -56,6 +57,8 @@ export default function DocumentDetailScreen() {
       alive = false;
     };
   }, [doc]);
+
+  const tint = useTypeTint(doc?.type ?? null);
 
   if (!doc) return <View style={styles.root} />;
 
@@ -176,8 +179,8 @@ export default function DocumentDetailScreen() {
         ) : null}
 
         <View style={styles.dhead}>
-          <View style={[styles.ico, { backgroundColor: T.background }]}>
-            <Icon name={T.icon} size={26} color={T.color} />
+          <View style={[styles.ico, { backgroundColor: tint.background }]}>
+            <Icon name={T.icon} size={26} color={tint.color} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.h2}>{displayTitle(doc)}</Text>
@@ -271,17 +274,18 @@ export default function DocumentDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   edit: { color: colors.blue, fontSize: 17, fontWeight: '600' },
-  missing: { height: 220, borderRadius: 18, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 24 },
+  missing: { height: 220, borderRadius: 18, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center', gap: 8, padding: 24 },
   missingTitle: { fontSize: 17, fontWeight: '600', color: colors.label },
   missingMsg: { fontSize: 14, color: colors.secondary, textAlign: 'center' },
   dhead: { flexDirection: 'row', gap: 14, alignItems: 'center', marginTop: 18, marginHorizontal: 4, marginBottom: 16 },
   ico: { width: 52, height: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
   h2: { fontSize: 22, fontWeight: '700', letterSpacing: -0.2, color: colors.label },
   p: { marginTop: 3, color: colors.secondary, fontSize: 15 },
-  card: { backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden' },
+  card: { backgroundColor: colors.card, borderRadius: 16, overflow: 'hidden' },
   kv: { flexDirection: 'row', justifyContent: 'space-between', gap: 16, paddingVertical: 14, paddingHorizontal: 16 },
   kvBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.separator, marginLeft: 16, paddingLeft: 0, paddingRight: 16 },
   k: { fontSize: 16, color: colors.secondary },
@@ -296,6 +300,6 @@ const styles = StyleSheet.create({
   removeText: { fontSize: 15, color: colors.red },
   addText: { fontSize: 16, color: colors.blue, fontWeight: '500' },
   hint: { marginTop: 8, marginHorizontal: 16, fontSize: 13, color: colors.secondary },
-  danger: { marginTop: 22, height: 52, borderRadius: 14, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  danger: { marginTop: 22, height: 52, borderRadius: 14, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
   dangerText: { color: colors.red, fontSize: 17 },
 });

@@ -1,17 +1,24 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as SystemUI from 'expo-system-ui';
 import React, { useEffect } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ShareInboxWatcher } from '@/components/ShareInboxWatcher';
 import { startBoot, useBoot } from '@/state/boot';
-import { colors } from '@/theme';
+import { type Palette, useThemedStyles } from '@/theme';
 
 export default function RootLayout() {
+  const { colors, styles } = useThemedStyles(makeStyles);
   const boot = useBoot();
 
   useEffect(() => {
     startBoot();
   }, []);
+
+  // Native root view background (visible during transitions and overscroll) follows the appearance too.
+  useEffect(() => {
+    void SystemUI.setBackgroundColorAsync(colors.bg).catch(() => {});
+  }, [colors.bg]);
 
   if (boot.status === 'loading') {
     return (
@@ -34,7 +41,7 @@ export default function RootLayout() {
 
   return (
     <>
-      <StatusBar style="dark" />
+      <StatusBar style="auto" />
       <Stack screenOptions={{ contentStyle: { backgroundColor: colors.bg } }}>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="new" options={{ presentation: 'modal', gestureEnabled: false }} />
@@ -48,10 +55,11 @@ export default function RootLayout() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.bg, padding: 32, gap: 10 },
   errTitle: { fontSize: 18, fontWeight: '600', color: colors.label },
   errMsg: { fontSize: 15, color: colors.secondary, textAlign: 'center' },
   retry: { marginTop: 10, paddingVertical: 12, paddingHorizontal: 28, borderRadius: 12, backgroundColor: colors.blue },
-  retryText: { color: '#fff', fontSize: 17, fontWeight: '600' },
+  retryText: { color: colors.onAccent, fontSize: 17, fontWeight: '600' },
 });

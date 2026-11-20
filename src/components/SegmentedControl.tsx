@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Animated, Easing, LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
-import { colors, shadow } from '@/theme';
+import { type Palette, useThemedStyles, shadow } from '@/theme';
 
 interface Props<T extends string> {
   options: { key: T; label: string }[];
@@ -10,6 +10,7 @@ interface Props<T extends string> {
 
 /** iOS-style segmented control with a sliding thumb (prototype `.seg`). */
 export function SegmentedControl<T extends string>({ options, value, onChange }: Props<T>) {
+  const { styles } = useThemedStyles(makeStyles);
   const [w, setW] = useState(0);
   const [x] = useState(() => new Animated.Value(0));
   const idx = Math.max(0, options.findIndex((o) => o.key === value));
@@ -37,9 +38,10 @@ export function SegmentedControl<T extends string>({ options, value, onChange }:
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
   seg: { flexDirection: 'row', backgroundColor: colors.fill, borderRadius: 10, padding: 2, marginTop: 10 },
-  thumb: { position: 'absolute', top: 2, bottom: 2, left: 2, backgroundColor: '#fff', borderRadius: 8 },
+  thumb: { position: 'absolute', top: 2, bottom: 2, left: 2, backgroundColor: colors.segThumb, borderRadius: 8 },
   btn: { flex: 1, height: 32, alignItems: 'center', justifyContent: 'center' },
   label: { fontSize: 14, fontWeight: '500', color: colors.label },
 });

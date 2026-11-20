@@ -1,7 +1,7 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { FlatList, LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors } from '@/theme';
+import { viewer } from '@/theme';
 import { NativePdf } from './NativePdf';
 import type { PreviewItem } from './PreviewCarousel';
 import { ZoomableImage } from './ZoomableImage';
@@ -77,7 +77,7 @@ export function FullScreenViewer({ items, initialIndex = 0, onClose }: Props) {
                 ) : (
                   <NativePdf
                     source={{ uri: item.uri }}
-                    style={{ width: area.w, height: area.h, backgroundColor: colors.viewerBg }}
+                    style={{ width: area.w, height: area.h, backgroundColor: viewer.bg }}
                     minScale={1}
                     maxScale={10}
                     enableDoubleTapZoom
@@ -116,7 +116,7 @@ export function FullScreenViewer({ items, initialIndex = 0, onClose }: Props) {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.viewerBg },
+  root: { flex: 1, backgroundColor: viewer.bg },
   top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingBottom: 10 },
   doneBtn: { minWidth: 70 },
   done: { color: '#fff', fontSize: 17 },
@@ -129,5 +129,5 @@ const styles = StyleSheet.create({
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#555' },
   errBox: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 6, padding: 30 },
   errTitle: { color: '#fff', fontSize: 17, fontWeight: '600' },
-  errMsg: { color: colors.secondary, fontSize: 14, textAlign: 'center' },
+  errMsg: { color: viewer.secondary, fontSize: 14, textAlign: 'center' },
 });

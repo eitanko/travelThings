@@ -4,7 +4,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { diffDays, formatLong, parseISODate, relative, toISODate } from '@/domain/dates';
 import { TYPE_INFO } from '@/domain/documents';
 import { DOCUMENT_TYPES, type DocumentMetadata } from '@/domain/types';
-import { colors } from '@/theme';
+import { type Palette, useScheme, useThemedStyles } from '@/theme';
 import { Icon } from './Icon';
 
 interface Props {
@@ -15,6 +15,8 @@ interface Props {
 
 /** Title / Type / Activity date. All optional (spec FR-04). No description, location, booking ref or trip. */
 export function DocumentForm({ value, onChange, disabled }: Props) {
+  const { colors, styles } = useThemedStyles(makeStyles);
+  const scheme = useScheme();
   const set = (patch: Partial<DocumentMetadata>) => onChange({ ...value, ...patch });
   const date = value.activityDate;
 
@@ -28,14 +30,14 @@ export function DocumentForm({ value, onChange, disabled }: Props) {
             value={value.title ?? ''}
             onChangeText={(t) => set({ title: t })}
             placeholder="Title (optional)"
-            placeholderTextColor="#b0b0b5"
+            placeholderTextColor={colors.placeholder}
             autoCorrect={false}
             returnKeyType="done"
             accessibilityLabel="Title, optional"
           />
           {!!value.title && (
             <Pressable style={styles.clr} onPress={() => set({ title: null })} accessibilityRole="button" accessibilityLabel="Clear title">
-              <Icon name="x" size={12} color="#fff" strokeWidth={2.4} />
+              <Icon name="x" size={12} color={colors.onAccent} strokeWidth={2.4} />
             </Pressable>
           )}
         </View>
@@ -70,6 +72,7 @@ export function DocumentForm({ value, onChange, disabled }: Props) {
           <View style={styles.inwrap}>
             <View style={{ flex: 1, paddingHorizontal: 14, minHeight: 50, justifyContent: 'center' }}>
               <DateTimePicker
+                themeVariant={scheme}
                 value={parseISODate(date)}
                 mode="date"
                 display="compact"
@@ -78,7 +81,7 @@ export function DocumentForm({ value, onChange, disabled }: Props) {
               />
             </View>
             <Pressable style={styles.clr} onPress={() => set({ activityDate: null })} accessibilityRole="button" accessibilityLabel="Remove date">
-              <Icon name="x" size={12} color="#fff" strokeWidth={2.4} />
+              <Icon name="x" size={12} color={colors.onAccent} strokeWidth={2.4} />
             </Pressable>
           </View>
         ) : (
@@ -88,7 +91,7 @@ export function DocumentForm({ value, onChange, disabled }: Props) {
             accessibilityRole="button"
             accessibilityLabel="Add activity date, optional"
           >
-            <Text style={{ flex: 1, fontSize: 17, color: '#b0b0b5' }}>Add date (optional)</Text>
+            <Text style={{ flex: 1, fontSize: 17, color: colors.placeholder }}>Add date (optional)</Text>
           </Pressable>
         )}
         <Text style={styles.hint}>
@@ -105,14 +108,15 @@ export function DocumentForm({ value, onChange, disabled }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
   field: { marginTop: 18, marginHorizontal: 16 },
   label: { fontSize: 13, color: colors.secondary, textTransform: 'uppercase', letterSpacing: 0.4, marginHorizontal: 4, marginBottom: 8 },
-  inwrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: 14, paddingRight: 8 },
+  inwrap: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.card, borderRadius: 14, paddingRight: 8 },
   input: { flex: 1, fontSize: 17, padding: 14, minHeight: 50, color: colors.label },
-  clr: { width: 26, height: 26, borderRadius: 13, backgroundColor: 'rgba(60,60,67,0.18)', alignItems: 'center', justifyContent: 'center' },
+  clr: { width: 26, height: 26, borderRadius: 13, backgroundColor: colors.clearField, alignItems: 'center', justifyContent: 'center' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 999, backgroundColor: '#fff', borderWidth: 1.5, borderColor: 'transparent' },
+  chip: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 999, backgroundColor: colors.card, borderWidth: 1.5, borderColor: 'transparent' },
   chipOn: { borderColor: colors.blue, backgroundColor: colors.blueTint },
   chipText: { fontSize: 15, color: colors.label },
   hint: { marginTop: 7, marginHorizontal: 6, fontSize: 13, color: colors.secondary },

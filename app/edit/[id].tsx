@@ -15,12 +15,13 @@ import { openPreview } from '@/services/documentPreview';
 import { removeTempFile } from '@/services/importer';
 import { renderRotatedCopy } from '@/services/imageRotation';
 import { notifyLibraryChanged, setFlash, useDocument } from '@/state/store';
-import { colors, shadow } from '@/theme';
+import { type Palette, useThemedStyles, shadow } from '@/theme';
 
 export default function EditDocumentScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const doc = useDocument(id);
+  const { styles } = useThemedStyles(makeStyles);
 
   useEffect(() => {
     if (doc === null && router.canGoBack()) router.back(); // deleted or never existed
@@ -38,6 +39,7 @@ export default function EditDocumentScreen() {
 }
 
 function EditForm({ doc }: { doc: Document }) {
+  const { colors, styles } = useThemedStyles(makeStyles);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const sheet = useActionSheet();
@@ -136,7 +138,7 @@ function EditForm({ doc }: { doc: Document }) {
           accessibilityLabel="Save Document"
           style={({ pressed }) => [styles.primary, shadow.primary, pressed && { transform: [{ scale: 0.985 }] }, saving && { opacity: 0.8 }]}
         >
-          {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryText}>Save Document</Text>}
+          {saving ? <ActivityIndicator color={colors.onAccent} /> : <Text style={styles.primaryText}>Save Document</Text>}
         </Pressable>
       </View>
       {sheet.element}
@@ -144,10 +146,11 @@ function EditForm({ doc }: { doc: Document }) {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   headerBtn: { color: colors.blue, fontSize: 17 },
-  bottom: { paddingHorizontal: 16, paddingTop: 12, backgroundColor: 'rgba(242,242,247,0.92)', borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.separator },
+  bottom: { paddingHorizontal: 16, paddingTop: 12, backgroundColor: colors.bottomBar, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.separator },
   primary: { height: 54, borderRadius: 15, backgroundColor: colors.blue, alignItems: 'center', justifyContent: 'center' },
-  primaryText: { color: '#fff', fontSize: 17, fontWeight: '600' },
+  primaryText: { color: colors.onAccent, fontSize: 17, fontWeight: '600' },
 });

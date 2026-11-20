@@ -5,23 +5,21 @@ export interface TypeInfo {
   label: string;
   category: Exclude<FilterCategory, 'all'>;
   icon: IconName;
-  color: string;
-  background: string;
 }
 
 export type IconName =
   | 'plane' | 'bed' | 'bus' | 'ticket' | 'passport' | 'visa' | 'file' | 'plus' | 'search'
   | 'chevR' | 'chevL' | 'x' | 'camera' | 'image' | 'scan' | 'folder' | 'layers' | 'check' | 'expand' | 'alert' | 'rotate';
 
-/** Colors/icons ported from the HTML prototype's TYPES table. */
+/** Labels/icons ported from the HTML prototype's TYPES table. Tints live in the theme (they differ per appearance). */
 export const TYPE_INFO: Record<DocumentType, TypeInfo> = {
-  flight: { label: 'Flight', category: 'bookings', icon: 'plane', color: '#2f7df6', background: '#e8f0fe' },
-  hotel: { label: 'Hotel', category: 'bookings', icon: 'bed', color: '#e8833a', background: '#fdf0e6' },
-  transport: { label: 'Transportation', category: 'bookings', icon: 'bus', color: '#2fa66b', background: '#e5f6ec' },
-  attraction: { label: 'Attraction', category: 'bookings', icon: 'ticket', color: '#d6498c', background: '#fce8f2' },
-  passport: { label: 'Passport', category: 'ids', icon: 'passport', color: '#5b6078', background: '#ececf3' },
-  visa: { label: 'Visa', category: 'ids', icon: 'visa', color: '#0f9aa8', background: '#e0f4f6' },
-  other: { label: 'Other', category: 'other', icon: 'file', color: '#8e8e93', background: '#efeff2' },
+  flight: { label: 'Flight', category: 'bookings', icon: 'plane' },
+  hotel: { label: 'Hotel', category: 'bookings', icon: 'bed' },
+  transport: { label: 'Transportation', category: 'bookings', icon: 'bus' },
+  attraction: { label: 'Attraction', category: 'bookings', icon: 'ticket' },
+  passport: { label: 'Passport', category: 'ids', icon: 'passport' },
+  visa: { label: 'Visa', category: 'ids', icon: 'visa' },
+  other: { label: 'Other', category: 'other', icon: 'file' },
 };
 
 export const typeInfo = (d: Pick<Document, 'type'>): TypeInfo => TYPE_INFO[d.type ?? 'other'];

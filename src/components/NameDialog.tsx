@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { toAppError } from '@/domain/errors';
 import { MAX_TRIP_NAME_LENGTH } from '@/domain/trips';
-import { colors } from '@/theme';
+import { type Palette, useThemedStyles } from '@/theme';
 
 interface Props {
   title: string;
@@ -16,6 +16,7 @@ interface Props {
 
 /** One text field with Cancel and Save. Save stays disabled while the name is empty. */
 export function NameDialog({ title, initialValue = '', placeholder, saveLabel, onSave, onCancel }: Props) {
+  const { colors, styles } = useThemedStyles(makeStyles);
   const [value, setValue] = useState(initialValue);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -84,10 +85,11 @@ export function NameDialog({ title, initialValue = '', placeholder, saveLabel, o
   );
 }
 
-const styles = StyleSheet.create({
-  scrim: { backgroundColor: 'rgba(0,0,0,0.38)' },
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+  scrim: { backgroundColor: colors.scrim },
   center: { ...StyleSheet.absoluteFill, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 28 },
-  card: { width: '100%', maxWidth: 320, backgroundColor: 'rgba(250,250,252,0.98)', borderRadius: 14, overflow: 'hidden' },
+  card: { width: '100%', maxWidth: 320, backgroundColor: colors.elevated, borderRadius: 14, overflow: 'hidden' },
   title: { textAlign: 'center', fontSize: 17, fontWeight: '600', color: colors.label, paddingTop: 18, paddingHorizontal: 16 },
   input: {
     marginTop: 14,
@@ -95,7 +97,7 @@ const styles = StyleSheet.create({
     height: 40,
     paddingHorizontal: 10,
     borderRadius: 9,
-    backgroundColor: '#fff',
+    backgroundColor: colors.inputOnElevated,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.separator,
     fontSize: 17,

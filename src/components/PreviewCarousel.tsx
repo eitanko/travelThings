@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Image, LayoutChangeEvent, NativeScrollEvent, NativeSyntheticEvent, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { colors } from '@/theme';
+import { type Palette, useThemedStyles } from '@/theme';
 import { Icon } from './Icon';
 import { NativePdf } from './NativePdf';
 
@@ -48,6 +48,7 @@ function turnedStyle(turns: number, aw: number, ah: number) {
 
 /** Paged, read-only thumbnail strip. First page of each PDF, the whole image otherwise. */
 export function PreviewCarousel({ items, height, onOpen, showZoomPill, onRotate, rotating }: Props) {
+  const { colors, styles } = useThemedStyles(makeStyles);
   const [w, setW] = useState(0);
   const [index, setIndex] = useState(0);
   const [failed, setFailed] = useState<Record<number, boolean>>({});
@@ -140,7 +141,7 @@ export function PreviewCarousel({ items, height, onOpen, showZoomPill, onRotate,
       {items.length > 1 && (
         <View style={styles.dots}>
           {items.map((_, i) => (
-            <View key={i} style={[styles.dot, i === index && { backgroundColor: '#555' }]} />
+            <View key={i} style={[styles.dot, i === index && { backgroundColor: colors.dotActive }]} />
           ))}
         </View>
       )}
@@ -148,13 +149,14 @@ export function PreviewCarousel({ items, height, onOpen, showZoomPill, onRotate,
   );
 }
 
-const styles = StyleSheet.create({
-  wrap: { borderRadius: 18, overflow: 'hidden', backgroundColor: '#dcdce3' },
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
+  wrap: { borderRadius: 18, overflow: 'hidden', backgroundColor: colors.previewBg },
   img: { width: '100%', height: '100%', borderRadius: 6 },
   pdfBox: { flex: 1, backgroundColor: '#fff', borderRadius: 6, overflow: 'hidden' },
   pdf: { flex: 1, backgroundColor: '#fff' },
-  fileCard: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: '#fff', borderRadius: 10, padding: 22 },
-  fileName: { fontSize: 14, fontWeight: '700', color: '#555', textAlign: 'center' },
+  fileCard: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: colors.placeholderCard, borderRadius: 10, padding: 22 },
+  fileName: { fontSize: 14, fontWeight: '700', color: colors.muted, textAlign: 'center' },
   fileSub: { fontSize: 13, color: colors.secondary },
   count: { position: 'absolute', top: 10, right: 10, backgroundColor: 'rgba(0,0,0,0.55)', paddingVertical: 3, paddingHorizontal: 9, borderRadius: 999 },
   countText: { color: '#fff', fontSize: 12, fontWeight: '600' },
@@ -162,5 +164,5 @@ const styles = StyleSheet.create({
   zoomText: { color: '#fff', fontSize: 13, fontWeight: '600' },
   rotate: { position: 'absolute', bottom: 10, left: 10, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: 'rgba(0,0,0,0.6)', paddingVertical: 7, paddingHorizontal: 12, borderRadius: 999 },
   dots: { flexDirection: 'row', justifyContent: 'center', gap: 6, paddingTop: 10, minHeight: 10 },
-  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#c7c7cc' },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.dot },
 });

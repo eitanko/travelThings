@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { colors } from '@/theme';
+import { viewer } from '@/theme';
 
 /**
  * Over-sampling factor. iOS decodes a RN <Image> at its layout size, so a plain pinch-zoomed image would be
@@ -78,5 +78,5 @@ export function ZoomableImage({ uri, width, height, onError }: Props) {
 
 const styles = StyleSheet.create({
   center: { alignItems: 'center', justifyContent: 'center' },
-  err: { color: colors.secondary, fontSize: 15 },
+  err: { color: viewer.secondary, fontSize: 15 },
 });

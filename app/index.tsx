@@ -18,7 +18,7 @@ import { loadSampleDocuments } from '@/dev/sampleData';
 import { getDocumentService } from '@/services/container';
 import { useAddFlow } from '@/state/addFlow';
 import { consumeFlash, notifyLibraryChanged, useLibrary } from '@/state/store';
-import { colors, font, shadow } from '@/theme';
+import { type Palette, useThemedStyles, font, shadow } from '@/theme';
 
 const FILTERS: { key: FilterCategory; label: string }[] = [
   { key: 'all', label: 'All' },
@@ -28,6 +28,7 @@ const FILTERS: { key: FilterCategory; label: string }[] = [
 ];
 
 export default function HomeScreen() {
+  const { colors, styles } = useThemedStyles(makeStyles);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { docs, trips, selectedTripId, loading, error, reload } = useLibrary();
@@ -217,7 +218,7 @@ export default function HomeScreen() {
               />
               {!!query && (
                 <Pressable style={styles.sclear} onPress={() => setQuery('')} accessibilityRole="button" accessibilityLabel="Clear search">
-                  <Icon name="x" size={11} color="#fff" strokeWidth={2.6} />
+                  <Icon name="x" size={11} color={colors.onAccent} strokeWidth={2.6} />
                 </Pressable>
               )}
             </View>
@@ -288,7 +289,7 @@ export default function HomeScreen() {
           accessibilityLabel="Add document"
           style={({ pressed }) => [styles.fab, shadow.fab, { bottom: insets.bottom + 22 }, pressed && { transform: [{ scale: 0.92 }] }]}
         >
-          <Icon name="plus" size={28} color="#fff" strokeWidth={2.4} />
+          <Icon name="plus" size={28} color={colors.onAccent} strokeWidth={2.4} />
         </Pressable>
       )}
 
@@ -321,7 +322,8 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   head: { paddingHorizontal: 16, paddingBottom: 8 },
   top: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', paddingHorizontal: 4, paddingBottom: 10, gap: 12 },
@@ -329,16 +331,16 @@ const styles = StyleSheet.create({
   h1: { fontSize: 22, fontWeight: '700', letterSpacing: -0.3, color: colors.label, flexShrink: 1 },
   search: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: colors.fill, borderRadius: 11, paddingHorizontal: 10, height: 38 },
   searchInput: { flex: 1, fontSize: 17, color: colors.label, padding: 0 },
-  sclear: { width: 18, height: 18, borderRadius: 9, backgroundColor: 'rgba(60,60,67,0.3)', alignItems: 'center', justifyContent: 'center' },
+  sclear: { width: 18, height: 18, borderRadius: 9, backgroundColor: colors.clearSearch, alignItems: 'center', justifyContent: 'center' },
   sh: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 20, marginHorizontal: 20, marginBottom: 8 },
   shText: { ...font.sectionHeader, color: colors.secondary, textTransform: 'uppercase' },
-  group: { marginHorizontal: 16, backgroundColor: '#fff', borderRadius: 16, overflow: 'hidden' },
+  group: { marginHorizontal: 16, backgroundColor: colors.card, borderRadius: 16, overflow: 'hidden' },
   fab: { position: 'absolute', right: 20, width: 60, height: 60, borderRadius: 30, backgroundColor: colors.blue, alignItems: 'center', justifyContent: 'center' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 8, padding: 32 },
   errTitle: { fontSize: 18, fontWeight: '600', color: colors.label },
   errMsg: { fontSize: 15, color: colors.secondary, textAlign: 'center' },
   retry: { marginTop: 10, paddingVertical: 12, paddingHorizontal: 28, borderRadius: 12, backgroundColor: colors.blue },
-  retryText: { color: '#fff', fontSize: 17, fontWeight: '600' },
+  retryText: { color: colors.onAccent, fontSize: 17, fontWeight: '600' },
   noMatch: { alignItems: 'center', paddingTop: 70, paddingHorizontal: 40, gap: 6 },
   noMatchTitle: { fontSize: 18, fontWeight: '700', color: colors.label, marginTop: 6 },
 });

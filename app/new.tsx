@@ -14,7 +14,7 @@ import { openPreview } from '@/services/documentPreview';
 import { removeTempFile } from '@/services/importer';
 import { rotateStagedImage } from '@/services/imageRotation';
 import { importSession, notifyLibraryChanged, setFlash, useLibrary, useStagedFiles } from '@/state/store';
-import { colors, shadow } from '@/theme';
+import { type Palette, useThemedStyles, shadow } from '@/theme';
 
 const baseName = (n: string) => {
   const e = extensionOf(n);
@@ -22,6 +22,7 @@ const baseName = (n: string) => {
 };
 
 export default function NewDocumentScreen() {
+  const { colors, styles } = useThemedStyles(makeStyles);
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const staged = useStagedFiles();
@@ -185,7 +186,7 @@ export default function NewDocumentScreen() {
           accessibilityLabel="Save Document"
           style={({ pressed }) => [styles.primary, shadow.primary, pressed && { transform: [{ scale: 0.985 }] }, saving && { opacity: 0.8 }]}
         >
-          {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryText}>Save Document</Text>}
+          {saving ? <ActivityIndicator color={colors.onAccent} /> : <Text style={styles.primaryText}>Save Document</Text>}
         </Pressable>
       </View>
       {sheet.element}
@@ -193,10 +194,11 @@ export default function NewDocumentScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   headerBtn: { color: colors.blue, fontSize: 17 },
-  bottom: { paddingHorizontal: 16, paddingTop: 12, backgroundColor: 'rgba(242,242,247,0.92)', borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.separator },
+  bottom: { paddingHorizontal: 16, paddingTop: 12, backgroundColor: colors.bottomBar, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.separator },
   primary: { height: 54, borderRadius: 15, backgroundColor: colors.blue, alignItems: 'center', justifyContent: 'center' },
-  primaryText: { color: '#fff', fontSize: 17, fontWeight: '600' },
+  primaryText: { color: colors.onAccent, fontSize: 17, fontWeight: '600' },
 });

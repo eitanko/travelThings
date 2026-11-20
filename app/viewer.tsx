@@ -7,7 +7,7 @@ import type { PreviewItem } from '@/components/PreviewCarousel';
 import { attachmentKind } from '@/domain/documents';
 import { getDocumentService } from '@/services/container';
 import { useStagedFiles } from '@/state/store';
-import { colors } from '@/theme';
+import { viewer } from '@/theme';
 
 /** Full-screen viewer for a saved document (`id`) or for the files currently staged in the Add flow (`staged=1`). */
 export default function ViewerScreen() {
@@ -53,6 +53,6 @@ export default function ViewerScreen() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.viewerBg },
+  root: { flex: 1, backgroundColor: viewer.bg },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
 });

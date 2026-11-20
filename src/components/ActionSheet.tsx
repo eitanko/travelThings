@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Easing, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { IconName } from '@/domain/documents';
-import { colors } from '@/theme';
+import { type Palette, useScheme, useThemedStyles } from '@/theme';
 import { Icon } from './Icon';
 
 export interface SheetAction {
@@ -42,6 +42,8 @@ export function useActionSheet() {
 }
 
 function SheetView({ config, onClose }: { config: SheetConfig; onClose: () => void }) {
+  const { colors, styles } = useThemedStyles(makeStyles);
+  const scrimOpacity = useScheme() === 'dark' ? 0.6 : 0.38;
   const insets = useSafeAreaInsets();
   const [t] = useState(() => new Animated.Value(0));
   const closing = useRef(false);
@@ -61,7 +63,7 @@ function SheetView({ config, onClose }: { config: SheetConfig; onClose: () => vo
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
-      <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: '#000', opacity: t.interpolate({ inputRange: [0, 1], outputRange: [0, 0.38] }) }]}>
+      <Animated.View style={[StyleSheet.absoluteFill, { backgroundColor: '#000', opacity: t.interpolate({ inputRange: [0, 1], outputRange: [0, scrimOpacity] }) }]}>
         <Pressable style={StyleSheet.absoluteFill} onPress={() => close(config.onCancel)} accessibilityLabel="Dismiss" />
       </Animated.View>
       <Animated.View
@@ -83,7 +85,7 @@ function SheetView({ config, onClose }: { config: SheetConfig; onClose: () => vo
                 accessibilityRole="button"
                 accessibilityLabel={a.sub ? `${a.label}, ${a.sub}` : a.label}
                 onPress={() => close(a.onPress)}
-                style={({ pressed }) => [styles.btn, styles.btnFlex, pressed && { backgroundColor: 'rgba(0,0,0,0.06)' }]}
+                style={({ pressed }) => [styles.btn, styles.btnFlex, pressed && { backgroundColor: colors.sheetPress }]}
               >
                 {a.icon ? <Icon name={a.icon} size={24} color={a.destructive ? colors.red : colors.blue} /> : null}
                 <View style={{ flex: 1 }}>
@@ -113,9 +115,10 @@ function SheetView({ config, onClose }: { config: SheetConfig; onClose: () => vo
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
   sheet: { position: 'absolute', left: 8, right: 8, gap: 8 },
-  group: { backgroundColor: 'rgba(250,250,252,0.97)', borderRadius: 14, overflow: 'hidden' },
+  group: { backgroundColor: colors.elevated, borderRadius: 14, overflow: 'hidden' },
   head: { paddingVertical: 14, paddingHorizontal: 16, alignItems: 'center', gap: 3 },
   headTitle: { color: colors.label, fontSize: 14, fontWeight: '600' },
   headMsg: { color: colors.secondary, fontSize: 13, textAlign: 'center' },
@@ -127,6 +130,6 @@ const styles = StyleSheet.create({
   btnBorder: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.separator },
   btnText: { fontSize: 18, color: colors.blue },
   btnSub: { fontSize: 12.5, color: colors.secondary, marginTop: 1 },
-  cancel: { minHeight: 58, borderRadius: 14, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
+  cancel: { minHeight: 58, borderRadius: 14, backgroundColor: colors.card, alignItems: 'center', justifyContent: 'center' },
   cancelText: { color: colors.blue, fontWeight: '600', fontSize: 18 },
 });

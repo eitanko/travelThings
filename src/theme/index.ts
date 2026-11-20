@@ -1,21 +1,175 @@
-/** Design tokens ported 1:1 from the HTML prototype's :root and component CSS. */
-export const colors = {
+import { useMemo } from 'react';
+import { type ImageStyle, StyleSheet, type TextStyle, useColorScheme, type ViewStyle } from 'react-native';
+import type { DocumentType } from '@/domain/types';
+
+/**
+ * Semantic color tokens. Every UI color goes through one of these; screens never hardcode a hex value.
+ * Light values are the original prototype colors. Dark values follow iOS's dark system palette.
+ */
+export interface Palette {
+  /** Screen background (iOS "grouped" background). */
+  bg: string;
+  /** Cards, grouped lists, text fields and other surfaces that sit on `bg`. */
+  card: string;
+  /** Floating surfaces: action sheets and dialogs. */
+  elevated: string;
+  /** Text field inside an `elevated` surface. */
+  inputOnElevated: string;
+  label: string;
+  secondary: string;
+  /** Softer text for file names on a placeholder card. */
+  muted: string;
+  placeholder: string;
+  separator: string;
+  blue: string;
+  blueTint: string;
+  red: string;
+  green: string;
+  /** Text and icons on top of `blue` (or on the clear buttons). */
+  onAccent: string;
+  fill: string;
+  chevron: string;
+  badge: string;
+  highlight: string;
+  rowPress: string;
+  /** Pressed state inside action sheets. */
+  sheetPress: string;
+  scrim: string;
+  /** Translucent bar behind the bottom Save button. */
+  bottomBar: string;
+  /** Small round clear (x) buttons. */
+  clearSearch: string;
+  clearField: string;
+  /** Selected thumb of the segmented control. */
+  segThumb: string;
+  /** Backdrop behind document previews. */
+  previewBg: string;
+  dot: string;
+  dotActive: string;
+  toast: string;
+  /** Surface for placeholder cards shown in place of a document preview. */
+  placeholderCard: string;
+}
+
+export const lightColors: Palette = {
   bg: '#f2f2f7',
   card: '#ffffff',
+  elevated: 'rgba(250,250,252,0.97)',
+  inputOnElevated: '#ffffff',
   label: '#111114',
   secondary: '#8e8e93',
+  muted: '#555555',
+  placeholder: '#b0b0b5',
   separator: 'rgba(60,60,67,0.14)',
   blue: '#007aff',
   blueTint: '#eaf3ff',
   red: '#ff3b30',
+  green: '#34c759',
+  onAccent: '#ffffff',
   fill: 'rgba(118,118,128,0.12)',
   chevron: '#c4c4c8',
   badge: '#efeff4',
-  viewerBg: '#0b0b0d',
-  yellow: '#ffd60a',
-  rowPress: 'rgba(0,0,0,0.05)',
   highlight: '#e6f1ff',
-} as const;
+  rowPress: 'rgba(0,0,0,0.05)',
+  sheetPress: 'rgba(0,0,0,0.06)',
+  scrim: 'rgba(0,0,0,0.38)',
+  bottomBar: 'rgba(242,242,247,0.92)',
+  clearSearch: 'rgba(60,60,67,0.3)',
+  clearField: 'rgba(60,60,67,0.18)',
+  segThumb: '#ffffff',
+  previewBg: '#dcdce3',
+  dot: '#c7c7cc',
+  dotActive: '#555555',
+  toast: 'rgba(30,30,32,0.94)',
+  placeholderCard: '#ffffff',
+};
+
+export const darkColors: Palette = {
+  bg: '#000000',
+  card: '#1c1c1e',
+  elevated: 'rgba(44,44,46,0.97)',
+  inputOnElevated: '#1c1c1e',
+  label: '#f2f2f7',
+  secondary: '#98989f',
+  muted: '#aeaeb2',
+  placeholder: '#6e6e73',
+  separator: 'rgba(84,84,88,0.55)',
+  blue: '#0a84ff',
+  blueTint: '#0b2a4a',
+  red: '#ff453a',
+  green: '#30d158',
+  onAccent: '#ffffff',
+  fill: 'rgba(118,118,128,0.24)',
+  chevron: '#545458',
+  badge: '#2c2c2e',
+  highlight: '#0f2e4f',
+  rowPress: 'rgba(255,255,255,0.08)',
+  sheetPress: 'rgba(255,255,255,0.1)',
+  scrim: 'rgba(0,0,0,0.6)',
+  bottomBar: 'rgba(0,0,0,0.88)',
+  clearSearch: 'rgba(235,235,245,0.3)',
+  clearField: 'rgba(235,235,245,0.3)',
+  segThumb: '#636366',
+  previewBg: '#2c2c2e',
+  dot: '#48484a',
+  dotActive: '#e5e5ea',
+  toast: 'rgba(72,72,74,0.96)',
+  placeholderCard: '#1c1c1e',
+};
+
+export type Scheme = 'light' | 'dark';
+
+/** Current system appearance. Re-renders the caller when the user changes it (or day/night switches it). */
+export function useScheme(): Scheme {
+  return useColorScheme() === 'dark' ? 'dark' : 'light';
+}
+
+/** Palette for the current system appearance. */
+export function useColors(): Palette {
+  return useScheme() === 'dark' ? darkColors : lightColors;
+}
+
+/**
+ * Themed styles: pass a factory that takes the palette and returns a style object. The result is memoized per palette,
+ * so styles are rebuilt only when the appearance changes. Usage: `const { colors, styles } = useThemedStyles(makeStyles);`.
+ */
+export function useThemedStyles<T extends Record<string, ViewStyle | TextStyle | ImageStyle>>(factory: (c: Palette) => T) {
+  const colors = useColors();
+  // `factory` is a module-level function, so it is stable.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const styles = useMemo(() => StyleSheet.create(factory(colors)), [colors]);
+  return { colors, styles };
+}
+
+/** Document-type tints (icon color + chip background) for the category indicators. */
+const TYPE_TINTS: Record<Scheme, Record<DocumentType, { color: string; background: string }>> = {
+  light: {
+    flight: { color: '#2f7df6', background: '#e8f0fe' },
+    hotel: { color: '#e8833a', background: '#fdf0e6' },
+    transport: { color: '#2fa66b', background: '#e5f6ec' },
+    attraction: { color: '#d6498c', background: '#fce8f2' },
+    passport: { color: '#5b6078', background: '#ececf3' },
+    visa: { color: '#0f9aa8', background: '#e0f4f6' },
+    other: { color: '#8e8e93', background: '#efeff2' },
+  },
+  dark: {
+    flight: { color: '#6aa8ff', background: '#16284a' },
+    hotel: { color: '#ffa05c', background: '#3d2713' },
+    transport: { color: '#4cd08b', background: '#12341f' },
+    attraction: { color: '#ff7ab6', background: '#40182f' },
+    passport: { color: '#a3a9c4', background: '#2a2d3d' },
+    visa: { color: '#3dc8d6', background: '#0f3338' },
+    other: { color: '#98989f', background: '#2c2c2e' },
+  },
+};
+
+/** Tint for a document type in the current appearance. `null` means "other", like `typeInfo`. */
+export function useTypeTint(type: DocumentType | null) {
+  return TYPE_TINTS[useScheme()][type ?? 'other'];
+}
+
+/** The full-screen viewer is dark in both appearances (like Photos), so it uses fixed colors. */
+export const viewer = { bg: '#0b0b0d', secondary: '#8e8e93' } as const;
 
 export const radius = { card: 16, input: 14, row: 12, big: 14, pill: 999 } as const;
 

@@ -1,6 +1,7 @@
 import React, { useCallback, useRef, useState } from 'react';
 import { Animated, Easing, StyleSheet, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { type Palette, useThemedStyles } from '@/theme';
 import { Icon } from './Icon';
 
 /** Prototype toast: dark pill that slides down from the top with a green check. Only shown after real success. */
@@ -9,6 +10,7 @@ export function useToast() {
   const [y] = useState(() => new Animated.Value(-160));
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const insets = useSafeAreaInsets();
+  const { colors, styles } = useThemedStyles(makeStyles);
 
   const show = useCallback(
     (msg: string) => {
@@ -28,7 +30,7 @@ export function useToast() {
       accessibilityLiveRegion="polite"
       style={[styles.toast, { top: insets.top + 8, transform: [{ translateY: y }] }]}
     >
-      <Icon name="check" size={18} color="#34c759" />
+      <Icon name="check" size={18} color={colors.green} />
       <Text style={styles.text}>{message}</Text>
     </Animated.View>
   ) : null;
@@ -36,14 +38,15 @@ export function useToast() {
   return { show, element };
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: Palette) =>
+  StyleSheet.create({
   toast: {
     position: 'absolute',
     alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: 'rgba(30,30,32,0.94)',
+    backgroundColor: colors.toast,
     paddingVertical: 11,
     paddingHorizontal: 18,
     borderRadius: 999,

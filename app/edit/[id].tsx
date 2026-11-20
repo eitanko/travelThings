@@ -47,6 +47,7 @@ function EditForm({ doc }: { doc: Document }) {
     title: doc.title,
     type: doc.type,
     activityDate: doc.activityDate,
+    expirationDate: doc.expirationDate,
   }));
   const [saving, setSaving] = useState(false);
   // Extra clockwise quarter turns per attachment, not saved yet. Cancelling simply drops them.

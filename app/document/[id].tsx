@@ -3,6 +3,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useActionSheet } from '@/components/ActionSheet';
+import { ExpirationBadge } from '@/components/ExpirationBadge';
 import { Icon } from '@/components/Icon';
 import { PreviewCarousel, type PreviewItem } from '@/components/PreviewCarousel';
 import { useToast } from '@/components/Toast';
@@ -10,12 +11,14 @@ import { errorSheet } from '@/components/showError';
 import { diffDays, formatLong, relative } from '@/domain/dates';
 import { attachmentKind, displayTitle, typeInfo } from '@/domain/documents';
 import { AppError } from '@/domain/errors';
+import { EXPIRATION_LABEL, expirationStatus } from '@/domain/expiration';
 import { DEFAULT_TRIP_NAME } from '@/domain/trips';
 import type { Attachment, Trip } from '@/domain/types';
 import { getDocumentService, getReadyDocumentService } from '@/services/container';
 import { openPreview } from '@/services/documentPreview';
 import type { Integrity } from '@/services/documentService';
 import { useAddFlow } from '@/state/addFlow';
+import { useToday } from '@/state/useToday';
 import { consumeFlash, notifyLibraryChanged, setFlash, useDocument, useLibrary } from '@/state/store';
 import { type Palette, useThemedStyles, useTypeTint } from '@/theme';
 
@@ -59,12 +62,14 @@ export default function DocumentDetailScreen() {
   }, [doc]);
 
   const tint = useTypeTint(doc?.type ?? null);
+  const today = useToday();
 
   if (!doc) return <View style={styles.root} />;
 
   const T = typeInfo(doc);
   const n = doc.attachments.length;
   const diff = doc.activityDate ? diffDays(doc.activityDate) : null;
+  const expStatus = expirationStatus(doc.expirationDate, today);
   const subtitle = [T.label, doc.title?.trim() ? doc.originalName : ''].filter(Boolean).join(' · ');
 
   /** Opens Quick Look with every file of this entry, starting at `index`. Done returns to this screen. */
@@ -218,6 +223,15 @@ export default function DocumentDetailScreen() {
               <Text style={[styles.v, { color: colors.secondary, fontWeight: '400', fontStyle: 'italic' }]}>No date</Text>
             )}
           </View>
+          {doc.expirationDate ? (
+            <View style={[styles.kv, styles.kvBorder]} accessible accessibilityLabel={`Expiration date, ${formatLong(doc.expirationDate)}${expStatus !== 'none' ? `, ${EXPIRATION_LABEL[expStatus]}` : ''}`}>
+              <Text style={styles.k}>Expiration date</Text>
+              <View style={{ alignItems: 'flex-end', flexShrink: 1, gap: 4 }}>
+                <Text style={styles.v}>{formatLong(doc.expirationDate)}</Text>
+                <ExpirationBadge status={expStatus} />
+              </View>
+            </View>
+          ) : null}
         </View>
 
         <Text style={styles.sectionLabel}>{`Documents · ${n}`}</Text>

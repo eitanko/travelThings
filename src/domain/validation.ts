@@ -49,11 +49,13 @@ export function sanitizeMetadata(input: {
   title?: string | null;
   type?: string | null;
   activityDate?: string | null;
+  expirationDate?: string | null;
 }): DocumentMetadata {
   const title = input.title?.trim() ? input.title.trim().slice(0, 200) : null;
   return {
     title,
     type: isDocumentType(input.type) ? input.type : null,
     activityDate: isValidISODate(input.activityDate) ? input.activityDate : null,
+    expirationDate: isValidISODate(input.expirationDate) ? input.expirationDate : null,
   };
 }

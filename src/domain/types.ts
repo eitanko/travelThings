@@ -52,6 +52,8 @@ export interface Document {
   type: DocumentType | null;
   /** Local calendar date, `YYYY-MM-DD`. */
   activityDate: string | null;
+  /** Optional expiry of the document itself (passport, licence, ID…), `YYYY-MM-DD`. Separate from `activityDate`. */
+  expirationDate: string | null;
   importedAt: number;
   /** Stable identity of the file content (see fingerprintOf). Used for duplicate detection. */
   fingerprint: string;
@@ -64,6 +66,7 @@ export interface DocumentMetadata {
   title: string | null;
   type: DocumentType | null;
   activityDate: string | null;
+  expirationDate: string | null;
 }
 
 /** A file selected by the user and still sitting in a temporary location. */
@@ -86,4 +89,5 @@ export const EMPTY_METADATA: DocumentMetadata = {
   title: null,
   type: null,
   activityDate: null,
+  expirationDate: null,
 };

@@ -72,6 +72,11 @@ export const MIGRATIONS: string[] = [
     processed_at INTEGER NOT NULL
   );
   `,
+  // v6 — Optional expiration date (YYYY-MM-DD) of the document itself. Nullable: existing rows stay NULL, nothing is
+  // fabricated. The status (About to expire / Expired) is derived from this at read time and never stored.
+  `
+  ALTER TABLE documents ADD COLUMN expiration_date TEXT;
+  `,
 ];
 
 export async function migrate(db: Db): Promise<void> {

@@ -3,8 +3,11 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { diffDays, formatLong, parseISODate, relative, toISODate } from '@/domain/dates';
 import { TYPE_INFO } from '@/domain/documents';
+import { EXPIRATION_LABEL, expirationStatus } from '@/domain/expiration';
 import { DOCUMENT_TYPES, type DocumentMetadata } from '@/domain/types';
+import { useToday } from '@/state/useToday';
 import { type Palette, useScheme, useThemedStyles } from '@/theme';
+import { ExpirationBadge } from './ExpirationBadge';
 import { Icon } from './Icon';
 
 interface Props {
@@ -19,6 +22,8 @@ export function DocumentForm({ value, onChange, disabled }: Props) {
   const scheme = useScheme();
   const set = (patch: Partial<DocumentMetadata>) => onChange({ ...value, ...patch });
   const date = value.activityDate;
+  const expiry = value.expirationDate;
+  const expStatus = expirationStatus(expiry, useToday());
 
   return (
     <View pointerEvents={disabled ? 'none' : 'auto'} style={disabled ? { opacity: 0.6 } : undefined}>
@@ -101,6 +106,47 @@ export function DocumentForm({ value, onChange, disabled }: Props) {
         </Text>
       </View>
 
+      <View style={styles.field}>
+        <Text style={styles.label}>Expiration date</Text>
+        {expiry ? (
+          <View style={styles.inwrap}>
+            <View style={{ flex: 1, paddingHorizontal: 14, minHeight: 50, justifyContent: 'center' }}>
+              <DateTimePicker
+                themeVariant={scheme}
+                value={parseISODate(expiry)}
+                mode="date"
+                display="compact"
+                style={{ alignSelf: 'flex-start' }}
+                accessibilityLabel="Expiration date"
+                onChange={(_, d) => d && set({ expirationDate: toISODate(d) })}
+              />
+            </View>
+            <Pressable style={styles.clr} onPress={() => set({ expirationDate: null })} accessibilityRole="button" accessibilityLabel="Remove expiration date">
+              <Icon name="x" size={12} color={colors.onAccent} strokeWidth={2.4} />
+            </Pressable>
+          </View>
+        ) : (
+          <Pressable
+            style={[styles.inwrap, { minHeight: 50, paddingLeft: 14 }]}
+            onPress={() => set({ expirationDate: toISODate(new Date()) })}
+            accessibilityRole="button"
+            accessibilityLabel="Add expiration date, optional"
+          >
+            <Text style={{ flex: 1, fontSize: 17, color: colors.placeholder }}>Add expiration date (optional)</Text>
+          </Pressable>
+        )}
+        {expiry && expStatus !== 'none' ? (
+          <View style={styles.statusRow} accessible accessibilityLabel={EXPIRATION_LABEL[expStatus]}>
+            <ExpirationBadge status={expStatus} />
+          </View>
+        ) : null}
+        <Text style={styles.hint}>
+          {expiry
+            ? formatLong(expiry)
+            : 'Optional — for a passport, licence, ID card or visa. You’ll see “About to expire” six months before.'}
+        </Text>
+      </View>
+
       <Text style={[styles.hint, { marginHorizontal: 22, marginTop: 18, marginBottom: 24 }]}>
         Everything is optional — you can save right away and fill this in later.
       </Text>
@@ -119,5 +165,6 @@ const makeStyles = (colors: Palette) =>
   chip: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 999, backgroundColor: colors.card, borderWidth: 1.5, borderColor: 'transparent' },
   chipOn: { borderColor: colors.blue, backgroundColor: colors.blueTint },
   chipText: { fontSize: 15, color: colors.label },
+  statusRow: { marginTop: 8, marginHorizontal: 4 },
   hint: { marginTop: 7, marginHorizontal: 6, fontSize: 13, color: colors.secondary },
 });

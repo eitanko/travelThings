@@ -113,6 +113,7 @@ export class DocumentService {
           title: meta.title ?? existing.title,
           type: meta.type ?? existing.type,
           activityDate: meta.activityDate ?? existing.activityDate,
+          expirationDate: meta.expirationDate ?? existing.expirationDate,
         };
         await this.d.repo.swapFiles(
           docId,
@@ -137,6 +138,7 @@ export class DocumentService {
         title: title ?? null,
         type: meta.type,
         activityDate: meta.activityDate,
+        expirationDate: meta.expirationDate,
         importedAt,
         fingerprint: prepared.fingerprint,
         storageKey,

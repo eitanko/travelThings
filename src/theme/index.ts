@@ -25,6 +25,11 @@ export interface Palette {
   blueTint: string;
   red: string;
   green: string;
+  /** Expiration labels: text and tinted background. Chosen for ≥4.5:1 contrast (not just the bare system red). */
+  warnText: string;
+  warnTint: string;
+  expiredText: string;
+  expiredTint: string;
   /** Text and icons on top of `blue` (or on the clear buttons). */
   onAccent: string;
   fill: string;
@@ -65,6 +70,10 @@ export const lightColors: Palette = {
   blueTint: '#eaf3ff',
   red: '#ff3b30',
   green: '#34c759',
+  warnText: '#8a5200',
+  warnTint: '#fff1cf',
+  expiredText: '#c41e14',
+  expiredTint: '#ffe5e3',
   onAccent: '#ffffff',
   fill: 'rgba(118,118,128,0.12)',
   chevron: '#c4c4c8',
@@ -98,6 +107,10 @@ export const darkColors: Palette = {
   blueTint: '#0b2a4a',
   red: '#ff453a',
   green: '#30d158',
+  warnText: '#ffc457',
+  warnTint: '#3d2c05',
+  expiredText: '#ff6b61',
+  expiredTint: '#4a1713',
   onAccent: '#ffffff',
   fill: 'rgba(118,118,128,0.24)',
   chevron: '#545458',

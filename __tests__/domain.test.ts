@@ -17,6 +17,7 @@ const doc = (p: Partial<Document>): Document => ({
   title: null,
   type: null,
   activityDate: null,
+  expirationDate: null,
   importedAt: n,
   fingerprint: `fp${n}`,
   storageKey: `k${n}`,
@@ -111,16 +112,18 @@ describe('validation', () => {
   });
 
   it('sanitizes metadata: every field optional, invalid values dropped', () => {
-    expect(sanitizeMetadata({})).toEqual({ title: null, type: null, activityDate: null });
+    expect(sanitizeMetadata({})).toEqual({ title: null, type: null, activityDate: null, expirationDate: null });
     expect(sanitizeMetadata({ title: '  Hi  ', type: 'flight', activityDate: '2026-12-12' })).toEqual({
       title: 'Hi',
       type: 'flight',
       activityDate: '2026-12-12',
+      expirationDate: null,
     });
     expect(sanitizeMetadata({ title: '   ', type: 'rocket', activityDate: '2026-13-45' })).toEqual({
       title: null,
       type: null,
       activityDate: null,
+      expirationDate: null,
     });
   });
 

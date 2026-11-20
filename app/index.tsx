@@ -11,6 +11,7 @@ import { SegmentedControl } from '@/components/SegmentedControl';
 import { useToast } from '@/components/Toast';
 import { errorSheet } from '@/components/showError';
 import { todayISO } from '@/domain/dates';
+import { useToday } from '@/state/useToday';
 import { groupDocuments, matchesFilter, matchesQuery } from '@/domain/documents';
 import { DEFAULT_TRIP_NAME } from '@/domain/trips';
 import type { Document, FilterCategory, Trip } from '@/domain/types';
@@ -69,7 +70,8 @@ export default function HomeScreen() {
     () => tripDocs.filter((d) => matchesFilter(d, filter) && matchesQuery(d, query)),
     [tripDocs, filter, query],
   );
-  const groups = useMemo(() => groupDocuments(visible, todayISO()), [visible]);
+  const today = useToday();
+  const groups = useMemo(() => groupDocuments(visible, today), [visible, today]);
   const q = query.trim();
   const showPast = pastOpen || !!q;
 
@@ -93,7 +95,7 @@ export default function HomeScreen() {
         </View>
         <View style={[styles.group, opts?.dim && { opacity: 0.62 }]}>
           {items.map((d, i) => (
-            <DocumentRow key={d.id} doc={d} first={i === 0} highlighted={highlight === d.id} onPress={() => router.push({ pathname: '/document/[id]', params: { id: d.id } })} />
+            <DocumentRow key={d.id} doc={d} first={i === 0} highlighted={highlight === d.id} today={today} onPress={() => router.push({ pathname: '/document/[id]', params: { id: d.id } })} />
           ))}
         </View>
       </View>
@@ -266,7 +268,7 @@ export default function HomeScreen() {
               {showPast && (
                 <View style={[styles.group, { opacity: 0.62 }]}>
                   {groups.past.map((d, i) => (
-                    <DocumentRow key={d.id} doc={d} first={i === 0} highlighted={highlight === d.id} onPress={() => router.push({ pathname: '/document/[id]', params: { id: d.id } })} />
+                    <DocumentRow key={d.id} doc={d} first={i === 0} highlighted={highlight === d.id} today={today} onPress={() => router.push({ pathname: '/document/[id]', params: { id: d.id } })} />
                   ))}
                 </View>
               )}

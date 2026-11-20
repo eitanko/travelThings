@@ -1,9 +1,9 @@
+import { filterOf, typeInfo } from './classification';
 import { diffDays, formatLong, relative } from './dates';
 import type { Attachment, Document, FilterCategory } from './types';
 
 export { TYPE_INFO, typeInfo } from './classification';
 export type { IconName } from './classification';
-import { typeInfo, filterOf } from './classification';
 
 /** Title if the user gave one, otherwise the original filename. Never "Untitled". */
 export function displayTitle(d: Pick<Document, 'title' | 'originalName'>): string {

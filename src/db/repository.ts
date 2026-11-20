@@ -82,6 +82,14 @@ async function insertAttachments(tx: Db, atts: Attachment[]): Promise<void> {
   }
 }
 
+async function recordImport(tx: Db, importId: string, documentId: string): Promise<void> {
+  await tx.runAsync('INSERT INTO processed_imports (import_id, document_id, processed_at) VALUES (?, ?, ?)', [
+    importId,
+    documentId,
+    Date.now(),
+  ]);
+}
+
 export class DocumentRepository {
   constructor(private readonly db: Db) {}
 
@@ -130,7 +138,7 @@ export class DocumentRepository {
   }
 
   /** Inserts the document and all attachments in one transaction. */
-  async insert(doc: Document): Promise<void> {
+  async insert(doc: Document, importId?: string): Promise<void> {
     await this.guard(() =>
       this.db.withTransaction(async (tx) => {
         await tx.runAsync(
@@ -139,8 +147,13 @@ export class DocumentRepository {
           [doc.id, doc.tripId, doc.originalName, doc.title, doc.type, doc.activityDate, doc.importedAt, doc.fingerprint, doc.storageKey],
         );
         await insertAttachments(tx, doc.attachments);
+        if (importId) await recordImport(tx, importId, doc.id);
       }),
     );
+  }
+
+  async isImportProcessed(importId: string): Promise<boolean> {
+    return this.guard(async () => !!(await this.db.getFirstAsync('SELECT 1 AS x FROM processed_imports WHERE import_id = ?', [importId])));
   }
 
   async updateMetadata(id: string, meta: DocumentMetadata): Promise<void> {
@@ -226,6 +239,7 @@ export class DocumentRepository {
     id: string,
     next: Pick<Document, 'originalName' | 'fingerprint' | 'storageKey' | 'importedAt' | 'attachments'>,
     meta: DocumentMetadata,
+    importId?: string,
   ): Promise<void> {
     await this.guard(() =>
       this.db.withTransaction(async (tx) => {
@@ -236,6 +250,7 @@ export class DocumentRepository {
           [next.originalName, next.fingerprint, next.storageKey, next.importedAt, meta.title, meta.type, meta.activityDate, id],
         );
         await insertAttachments(tx, next.attachments);
+        if (importId) await recordImport(tx, importId, id);
       }),
     );
   }

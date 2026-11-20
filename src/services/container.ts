@@ -3,6 +3,7 @@ import { DocumentRepository } from '@/db/repository';
 import { openDatabase } from '@/db/expoDb';
 import { DocumentService } from './documentService';
 import { ExpoFileStore } from './fileStore';
+import { syncShareInbox } from './sharedInbox';
 
 let instance: Promise<DocumentService> | null = null;
 let ready: DocumentService | null = null;
@@ -29,6 +30,12 @@ export function getDocumentService(): Promise<DocumentService> {
       });
       try {
         await service.sweepOrphans();
+      } catch {
+        /* non-fatal */
+      }
+      try {
+        // Saved Share-extension packages become events before any list is shown. Failures are retried on foreground.
+        await syncShareInbox(service);
       } catch {
         /* non-fatal */
       }

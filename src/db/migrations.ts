@@ -63,6 +63,15 @@ export const MIGRATIONS: string[] = [
   `
   ALTER TABLE attachments ADD COLUMN rotation_turns INTEGER NOT NULL DEFAULT 0;
   `,
+  // v5 — Remembers which iOS Share extension imports were already incorporated, so a retry after a crash or a
+  // repeated foreground callback can never create a second event. Written in the same transaction as the event.
+  `
+  CREATE TABLE processed_imports (
+    import_id    TEXT PRIMARY KEY NOT NULL,
+    document_id  TEXT NOT NULL,
+    processed_at INTEGER NOT NULL
+  );
+  `,
 ];
 
 export async function migrate(db: Db): Promise<void> {

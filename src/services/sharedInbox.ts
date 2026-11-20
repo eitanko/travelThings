@@ -1,65 +1,90 @@
 import { Directory, File, Paths } from 'expo-file-system';
-import { parseManifest, type SharedManifest } from '@/domain/sharedImport';
-import type { StagedFile } from '@/domain/types';
+import type { ShareSnapshot } from '@/domain/sharePackage';
+import { buildSnapshot, ingestPackages, type InboxPackage, type InboxStore } from './shareIngest';
+import type { DocumentService } from './documentService';
 
-/** Must match the App Group in app.json and targets/share. */
+/** Must match the App Group in app.json and targets/share/Models.swift. */
 export const SHARE_GROUP_ID = 'group.com.eitankoren.travelthings';
 
-export interface PendingShare {
-  id: string;
-  files: StagedFile[];
-}
-
-function incomingDir(): Directory | null {
+function groupRoot(): Directory | null {
   try {
-    const root = Paths.appleSharedContainers?.[SHARE_GROUP_ID];
-    if (!root) return null;
-    const dir = new Directory(root, 'incoming');
-    return dir.exists ? dir : null;
+    return Paths.appleSharedContainers?.[SHARE_GROUP_ID] ?? null;
   } catch {
-    return null; // e.g. Expo Go or a build without the App Group
+    return null; // Expo Go or a build without the App Group
   }
 }
 
-/**
- * Returns the oldest completed share from the extension that is not `skipId`, or null.
- * Half-written shares (`*.staging`) and invalid manifests are ignored, never loaded or deleted here.
- */
-export async function readPendingShare(skipId?: string): Promise<PendingShare | null> {
-  const dir = incomingDir();
-  if (!dir) return null;
-  const found: { manifest: SharedManifest; dir: Directory }[] = [];
-  for (const entry of dir.list()) {
-    if (!(entry instanceof Directory) || entry.name.endsWith('.staging') || entry.name === skipId) continue;
-    try {
-      const manifestFile = new File(entry, 'manifest.json');
-      if (!manifestFile.exists) continue;
-      const manifest = parseManifest(await manifestFile.text());
-      if (manifest && manifest.id === entry.name) found.push({ manifest, dir: entry });
-    } catch {
-      /* unreadable: leave it for a later attempt */
-    }
-  }
-  found.sort((a, b) => a.manifest.createdAt - b.manifest.createdAt);
-  for (const { manifest, dir: d } of found) {
-    const files: StagedFile[] = [];
-    for (const f of manifest.files) {
-      const file = new File(d, f.path);
-      if (file.exists) files.push({ uri: file.uri, name: f.name, mimeType: f.mimeType, size: file.size });
-    }
-    if (files.length === manifest.files.length) return { id: manifest.id, files };
-  }
-  return null;
-}
+class ExpoInbox implements InboxStore {
+  constructor(private readonly dir: Directory) {}
 
-/** Removes a share's staged files. Call only after the event is committed or the user cancelled. */
-export function removeShare(id: string): void {
-  try {
-    const dir = incomingDir();
-    if (!dir) return;
-    const d = new Directory(dir, id);
+  list(): InboxPackage[] {
+    const out: InboxPackage[] = [];
+    for (const entry of this.dir.list()) {
+      if (!(entry instanceof Directory) || entry.name.endsWith('.staging')) continue;
+      out.push({
+        importId: entry.name,
+        readManifest: () => new File(entry, 'package.json').text(),
+        fileUri: (name) => new File(entry, name).uri,
+        fileSize: (name) => {
+          const f = new File(entry, name);
+          return f.exists ? f.size : null;
+        },
+      });
+    }
+    return out;
+  }
+
+  remove(importId: string): void {
+    const d = new Directory(this.dir, importId);
     if (d.exists) d.delete();
-  } catch {
-    /* retried implicitly: a leftover share is caught by the duplicate check if it is imported again */
   }
+}
+
+/** Publishes trips and known fingerprints for the extension. Replaced as a whole file; the extension tolerates a missing one. */
+export async function writeSnapshot(svc: DocumentService): Promise<void> {
+  const root = groupRoot();
+  if (!root) return;
+  const snapshot: ShareSnapshot = await buildSnapshot(svc, Date.now());
+  const tmp = new File(root, 'snapshot.json.tmp');
+  const dest = new File(root, 'snapshot.json');
+  if (tmp.exists) tmp.delete();
+  tmp.create();
+  tmp.write(JSON.stringify(snapshot));
+  if (dest.exists) dest.delete();
+  tmp.move(dest);
+}
+
+export interface SyncResult {
+  incorporated: number;
+  failed: number;
+  fellBackToDefault: number;
+  lastDocumentId: string | null;
+}
+
+let running: Promise<SyncResult> | null = null;
+
+/** Incorporates saved shares, then refreshes the snapshot. Concurrent calls share one run, so callbacks never overlap. */
+export function syncShareInbox(svc: DocumentService): Promise<SyncResult> {
+  if (running) return running;
+  running = (async () => {
+    const empty: SyncResult = { incorporated: 0, failed: 0, fellBackToDefault: 0, lastDocumentId: null };
+    const root = groupRoot();
+    if (!root) return empty;
+    let result = empty;
+    try {
+      const inbox = new Directory(root, 'inbox');
+      if (inbox.exists) result = await ingestPackages(svc, new ExpoInbox(inbox));
+    } catch {
+      /* retried on the next foreground */
+    }
+    try {
+      await writeSnapshot(svc);
+    } catch {
+      /* the extension falls back to My Documents only */
+    }
+    return result;
+  })().finally(() => {
+    running = null;
+  });
+  return running;
 }

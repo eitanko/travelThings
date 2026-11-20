@@ -8,7 +8,8 @@ const { withXcodeProject, withEntitlementsPlist, withDangerousMod } = require('@
 
 const NAME = 'ShareExtension';
 const SRC = 'targets/share';
-const FILES = ['ShareViewController.swift', 'Info.plist', 'share.entitlements'];
+const SWIFT = ['Models.swift', 'Draft.swift', 'ShareModel.swift', 'ReviewView.swift', 'ShareViewController.swift'];
+const FILES = [...SWIFT, 'Info.plist', 'share.entitlements'];
 
 module.exports = function withShareExtension(config, { groupId, bundleSuffix = 'share' }) {
   const mainBundle = config.ios.bundleIdentifier;
@@ -39,7 +40,7 @@ module.exports = function withShareExtension(config, { groupId, bundleSuffix = '
     proj.addToPbxGroup(group.uuid, mainGroup);
 
     const target = proj.addTarget(NAME, 'app_extension', NAME, extBundle);
-    proj.addBuildPhase(['ShareViewController.swift'], 'PBXSourcesBuildPhase', 'Sources', target.uuid);
+    proj.addBuildPhase(SWIFT, 'PBXSourcesBuildPhase', 'Sources', target.uuid);
     proj.addBuildPhase([], 'PBXResourcesBuildPhase', 'Resources', target.uuid);
     proj.addBuildPhase([], 'PBXFrameworksBuildPhase', 'Frameworks', target.uuid);
 

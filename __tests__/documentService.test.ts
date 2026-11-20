@@ -319,9 +319,9 @@ describe('failure handling', () => {
 describe('database', () => {
   it('migrates to the current schema version and is idempotent across restarts', async () => {
     const db = (h.repo as unknown as { db: { getFirstAsync: <T>(s: string) => Promise<T | null> } }).db;
-    expect((await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version'))!.user_version).toBe(4);
+    expect((await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version'))!.user_version).toBe(5);
     const h2 = await h.restart();
     const db2 = (h2.repo as unknown as { db: { getFirstAsync: <T>(s: string) => Promise<T | null> } }).db;
-    expect((await db2.getFirstAsync<{ user_version: number }>('PRAGMA user_version'))!.user_version).toBe(4);
+    expect((await db2.getFirstAsync<{ user_version: number }>('PRAGMA user_version'))!.user_version).toBe(5);
   });
 });

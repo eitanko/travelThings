@@ -92,6 +92,8 @@ export class DocumentService {
     metaInput: Partial<DocumentMetadata>,
     mode: CommitMode,
     tripId: string = DEFAULT_TRIP_ID,
+    /** Set for imports that came through the Share extension. Recorded in the same transaction as the event. */
+    importId?: string,
   ): Promise<Document> {
     const meta = sanitizeMetadata(metaInput);
     const total = prepared.files.reduce((n, f) => n + f.size + (f.original?.size ?? 0), 0);
@@ -116,6 +118,7 @@ export class DocumentService {
           docId,
           { originalName, fingerprint: prepared.fingerprint, storageKey, importedAt, attachments },
           merged,
+          importId,
         );
         // The swap is committed. Removing the old files is best-effort; leftovers are swept on next launch.
         try {
@@ -139,12 +142,16 @@ export class DocumentService {
         storageKey,
         attachments,
       };
-      await this.d.repo.insert(doc);
+      await this.d.repo.insert(doc, importId);
       return doc;
     } catch (e) {
       this.safeRemove(storageKey);
       throw e instanceof AppError ? e : toAppError(e, 'WRITE_FAILED');
     }
+  }
+
+  isImportProcessed(importId: string): Promise<boolean> {
+    return this.d.repo.isImportProcessed(importId);
   }
 
   private async copyAll(prepared: PreparedImport, documentId: string, storageKey: string): Promise<Attachment[]> {

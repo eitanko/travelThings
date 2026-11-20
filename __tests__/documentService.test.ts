@@ -1,4 +1,5 @@
 /** @jest-environment node */
+import { MIGRATIONS } from '@/db/migrations';
 import fs from 'node:fs';
 import { AppError } from '@/domain/errors';
 import { displayTitle, groupDocuments } from '@/domain/documents';
@@ -47,18 +48,18 @@ describe('import and persistence', () => {
   });
 
   it('survives an app restart', async () => {
-    const { doc } = await importPdf('persist.pdf', 'persist', { title: 'Keep me', type: 'hotel', activityDate: '2026-12-12' });
+    const { doc } = await importPdf('persist.pdf', 'persist', { title: 'Keep me', category: 'accommodation', type: 'hotel_reservation', activityDate: '2026-12-12' });
     const h2 = await h.restart();
     const docs = await h2.svc.list();
     expect(docs).toHaveLength(1);
-    expect(docs[0]).toMatchObject({ id: doc.id, title: 'Keep me', type: 'hotel', activityDate: '2026-12-12' });
+    expect(docs[0]).toMatchObject({ id: doc.id, title: 'Keep me', category: 'accommodation', type: 'hotel_reservation', activityDate: '2026-12-12' });
     expect(h2.svc.checkIntegrity(docs[0]!)).toBe('ok');
     expect(fs.existsSync(h2.svc.uriFor(docs[0]!.attachments[0]!))).toBe(true);
   });
 
   it('saves with every metadata field empty and shows the original filename', async () => {
     const { doc } = await importPdf('Boarding Pass LH123.pdf');
-    expect(doc).toMatchObject({ title: null, type: null, activityDate: null });
+    expect(doc).toMatchObject({ title: null, category: 'other', type: 'general_file', activityDate: null });
     expect(displayTitle(doc)).toBe('Boarding Pass LH123.pdf');
     const listed = (await h.svc.list())[0]!;
     expect(displayTitle(listed)).toBe('Boarding Pass LH123.pdf');
@@ -94,9 +95,9 @@ describe('editing and deleting', () => {
   it('edits optional metadata after saving', async () => {
     const { doc } = await importPdf('e.pdf');
     await h.svc.updateMetadata(doc.id, { title: ' New ', type: 'visa', activityDate: '2027-01-02' });
-    expect(await h.svc.get(doc.id)).toMatchObject({ title: 'New', type: 'visa', activityDate: '2027-01-02' });
+    expect(await h.svc.get(doc.id)).toMatchObject({ title: 'New', category: 'personal', type: 'visa', activityDate: '2027-01-02' });
     await h.svc.updateMetadata(doc.id, {});
-    expect(await h.svc.get(doc.id)).toMatchObject({ title: null, type: null, activityDate: null });
+    expect(await h.svc.get(doc.id)).toMatchObject({ title: null, category: 'other', type: 'general_file', activityDate: null });
   });
 
   it('changing the activity date changes the list position', async () => {
@@ -148,7 +149,7 @@ describe('duplicate detection', () => {
   });
 
   it('Replace existing: keeps the record id, swaps files, removes the old files', async () => {
-    const first = await importPdf('orig.pdf', 'dup', { title: 'My ticket', type: 'flight' });
+    const first = await importPdf('orig.pdf', 'dup', { title: 'My ticket', type: 'flight_reservation' });
     const oldKey = first.doc.storageKey;
     const uri2 = h.write('orig-again.pdf', pdfBytes('dup'));
     const prepared = await h.svc.prepare([{ uri: uri2, name: 'orig-again.pdf', mimeType: 'application/pdf' }]);
@@ -319,9 +320,9 @@ describe('failure handling', () => {
 describe('database', () => {
   it('migrates to the current schema version and is idempotent across restarts', async () => {
     const db = (h.repo as unknown as { db: { getFirstAsync: <T>(s: string) => Promise<T | null> } }).db;
-    expect((await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version'))!.user_version).toBe(6);
+    expect((await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version'))!.user_version).toBe(MIGRATIONS.length);
     const h2 = await h.restart();
     const db2 = (h2.repo as unknown as { db: { getFirstAsync: <T>(s: string) => Promise<T | null> } }).db;
-    expect((await db2.getFirstAsync<{ user_version: number }>('PRAGMA user_version'))!.user_version).toBe(6);
+    expect((await db2.getFirstAsync<{ user_version: number }>('PRAGMA user_version'))!.user_version).toBe(MIGRATIONS.length);
   });
 });

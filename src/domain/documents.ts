@@ -1,28 +1,9 @@
 import { diffDays, formatLong, relative } from './dates';
-import type { Attachment, Document, DocumentType, FilterCategory } from './types';
+import type { Attachment, Document, FilterCategory } from './types';
 
-export interface TypeInfo {
-  label: string;
-  category: Exclude<FilterCategory, 'all'>;
-  icon: IconName;
-}
-
-export type IconName =
-  | 'plane' | 'bed' | 'bus' | 'ticket' | 'passport' | 'visa' | 'file' | 'plus' | 'search'
-  | 'chevR' | 'chevL' | 'x' | 'camera' | 'image' | 'scan' | 'folder' | 'layers' | 'check' | 'expand' | 'alert' | 'rotate';
-
-/** Labels/icons ported from the HTML prototype's TYPES table. Tints live in the theme (they differ per appearance). */
-export const TYPE_INFO: Record<DocumentType, TypeInfo> = {
-  flight: { label: 'Flight', category: 'bookings', icon: 'plane' },
-  hotel: { label: 'Hotel', category: 'bookings', icon: 'bed' },
-  transport: { label: 'Transportation', category: 'bookings', icon: 'bus' },
-  attraction: { label: 'Attraction', category: 'bookings', icon: 'ticket' },
-  passport: { label: 'Passport', category: 'ids', icon: 'passport' },
-  visa: { label: 'Visa', category: 'ids', icon: 'visa' },
-  other: { label: 'Other', category: 'other', icon: 'file' },
-};
-
-export const typeInfo = (d: Pick<Document, 'type'>): TypeInfo => TYPE_INFO[d.type ?? 'other'];
+export { TYPE_INFO, typeInfo } from './classification';
+export type { IconName } from './classification';
+import { typeInfo, filterOf } from './classification';
 
 /** Title if the user gave one, otherwise the original filename. Never "Untitled". */
 export function displayTitle(d: Pick<Document, 'title' | 'originalName'>): string {
@@ -41,7 +22,7 @@ export interface Grouped {
 }
 
 export function matchesFilter(d: Document, filter: FilterCategory): boolean {
-  return filter === 'all' || typeInfo(d).category === filter;
+  return filter === 'all' || filterOf(d.category) === filter;
 }
 
 export function searchHaystack(d: Document, now: Date = new Date()): string {

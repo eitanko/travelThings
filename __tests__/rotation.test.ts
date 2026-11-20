@@ -114,7 +114,7 @@ describe('turning an image that is already saved', () => {
       { uri: h.write('a.jpg', ORIGINAL), name: 'a.jpg', mimeType: 'image/jpeg' },
       { uri: h.write('b.jpg', Buffer.from('second page')), name: 'b.jpg', mimeType: 'image/jpeg' },
     ];
-    return h.svc.commit(await h.svc.prepare(files), { title: 'Ticket', type: 'flight', activityDate: '2026-12-01' }, { kind: 'new' });
+    return h.svc.commit(await h.svc.prepare(files), { title: 'Ticket', type: 'flight_reservation', activityDate: '2026-12-01' }, { kind: 'new' });
   };
 
   it('turns one image, keeps its original, and leaves the other image and the metadata alone', async () => {

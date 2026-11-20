@@ -24,7 +24,7 @@ const prepareOne = (uri: string, name: string, mimeType: string) => h.svc.prepar
 
 describe('add another document', () => {
   it('attaches a second file to the same entry without creating a library item', async () => {
-    const doc = await createEntry({ title: 'Bus to Andorra', type: 'transport', activityDate: '2027-03-04' });
+    const doc = await createEntry({ title: 'Bus to Andorra', type: 'bus_ticket', activityDate: '2027-03-04' });
     const second = h.write('second.png', PNG);
     const updated = await h.svc.addAttachments(doc.id, await prepareOne(second, 'Passenger 2.png', 'image/png'));
 
@@ -36,11 +36,11 @@ describe('add another document', () => {
   });
 
   it('never changes the entry metadata or the first file', async () => {
-    const doc = await createEntry({ title: 'Bus to Andorra', type: 'transport', activityDate: '2027-03-04' });
+    const doc = await createEntry({ title: 'Bus to Andorra', type: 'bus_ticket', activityDate: '2027-03-04' });
     const firstBefore = fs.readFileSync(h.svc.uriFor(doc.attachments[0]!));
     const after = await h.svc.addAttachments(doc.id, await prepareOne(h.write('b.pdf', pdfBytes('b')), 'b.pdf', 'application/pdf'));
 
-    expect(after).toMatchObject({ title: 'Bus to Andorra', type: 'transport', activityDate: '2027-03-04', originalName: doc.originalName });
+    expect(after).toMatchObject({ title: 'Bus to Andorra', type: 'bus_ticket', activityDate: '2027-03-04', originalName: doc.originalName });
     expect(after.attachments[0]!.id).toBe(doc.attachments[0]!.id);
     expect(fs.readFileSync(h.svc.uriFor(after.attachments[0]!)).equals(firstBefore)).toBe(true);
   });

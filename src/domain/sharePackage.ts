@@ -1,4 +1,5 @@
-import { DOCUMENT_TYPES, type DocumentType } from './types';
+import { normalizeLegacyType } from './classification';
+import type { DocumentType } from './types';
 
 /**
  * Contract between the iOS Share extension (targets/share, Swift) and the main app.
@@ -76,7 +77,7 @@ export function parsePackage(raw: string): SharePackage | null {
     createdAt: typeof v.createdAt === 'number' ? v.createdAt : 0,
     tripId: v.tripId,
     title: isStr(v.title) ? v.title : null,
-    type: (DOCUMENT_TYPES as readonly string[]).includes(v.type) ? (v.type as DocumentType) : null,
+    type: normalizeLegacyType(v.type),
     activityDate: isStr(v.activityDate) ? v.activityDate : null,
     duplicate,
     files,

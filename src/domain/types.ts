@@ -1,13 +1,15 @@
 /** Phase 1 domain model: a Document is an opaque stored file set with optional metadata. */
 
+export const CATEGORIES = ['transportation', 'accommodation', 'activities', 'personal', 'other'] as const;
+export type Category = (typeof CATEGORIES)[number];
+
+/** Stable subtype keys, unique across categories (see CATEGORY_TYPES in classification.ts for the grouping). */
 export const DOCUMENT_TYPES = [
-  'flight',
-  'hotel',
-  'transport',
-  'attraction',
-  'passport',
-  'visa',
-  'other',
+  'flight_reservation', 'boarding_pass', 'bus_ticket', 'train_ticket', 'ferry_ticket', 'other_transport',
+  'hotel_reservation', 'apartment_reservation', 'other_accommodation',
+  'attraction_ticket', 'tour_ticket', 'event_ticket', 'restaurant_reservation', 'other_activity',
+  'passport', 'national_id', 'drivers_license', 'visa', 'social_security_card', 'travel_insurance', 'other_personal',
+  'itinerary', 'guide_map', 'general_file',
 ] as const;
 export type DocumentType = (typeof DOCUMENT_TYPES)[number];
 
@@ -49,7 +51,9 @@ export interface Document {
   /** Original filename of the first attachment; display fallback when title is empty. */
   originalName: string;
   title: string | null;
-  type: DocumentType | null;
+  /** Always set; `other` / `general_file` when the user never classified the entry. */
+  category: Category;
+  type: DocumentType;
   /** Local calendar date, `YYYY-MM-DD`. */
   activityDate: string | null;
   /** Optional expiry of the document itself (passport, licence, ID…), `YYYY-MM-DD`. Separate from `activityDate`. */
@@ -64,6 +68,8 @@ export interface Document {
 
 export interface DocumentMetadata {
   title: string | null;
+  /** null = not chosen (new entries default to Other / General file; a replace keeps the existing value). */
+  category: Category | null;
   type: DocumentType | null;
   activityDate: string | null;
   expirationDate: string | null;
@@ -87,6 +93,7 @@ export interface StagedFile {
 
 export const EMPTY_METADATA: DocumentMetadata = {
   title: null,
+  category: null,
   type: null,
   activityDate: null,
   expirationDate: null,

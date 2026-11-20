@@ -73,12 +73,12 @@ describe('parsePackage', () => {
 
 describe('ingestPackages', () => {
   it('turns a saved package into one event with its metadata, then removes the package', async () => {
-    writePackage('imp-1', [{ name: 'boarding.pdf', bytes: pdf('a') }], { title: 'Flight home', type: 'flight', activityDate: '2026-12-01' });
+    writePackage('imp-1', [{ name: 'boarding.pdf', bytes: pdf('a') }], { title: 'Flight home', type: 'flight_reservation', activityDate: '2026-12-01' });
     const r = await ingestPackages(h.svc, store());
     expect(r).toMatchObject({ incorporated: 1, failed: 0 });
     const docs = await h.svc.list();
     expect(docs).toHaveLength(1);
-    expect(docs[0]).toMatchObject({ title: 'Flight home', type: 'flight', activityDate: '2026-12-01', tripId: DEFAULT_TRIP_ID });
+    expect(docs[0]).toMatchObject({ title: 'Flight home', type: 'flight_reservation', activityDate: '2026-12-01', tripId: DEFAULT_TRIP_ID });
     expect(fs.existsSync(path.join(inboxDir, 'imp-1'))).toBe(false);
   });
 

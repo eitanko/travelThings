@@ -77,6 +77,29 @@ export const MIGRATIONS: string[] = [
   `
   ALTER TABLE documents ADD COLUMN expiration_date TEXT;
   `,
+  // v7 — Five-category classification. Adds `category` and rewrites legacy `type` keys deterministically:
+  // flight→flight_reservation, hotel→hotel_reservation, transport→other_transport (the old value never said bus/train/ferry),
+  // attraction→attraction_ticket, passport/visa unchanged, other/NULL/anything unrecognised→general_file. Nothing else
+  // (title, dates, trip, attachments, files) is touched; the old `activity_date`/`expiration_date` stay exactly as saved.
+  `
+  ALTER TABLE documents ADD COLUMN category TEXT NOT NULL DEFAULT 'other';
+  UPDATE documents SET type = CASE type
+    WHEN 'flight' THEN 'flight_reservation'
+    WHEN 'hotel' THEN 'hotel_reservation'
+    WHEN 'transport' THEN 'other_transport'
+    WHEN 'attraction' THEN 'attraction_ticket'
+    WHEN 'passport' THEN 'passport'
+    WHEN 'visa' THEN 'visa'
+    ELSE 'general_file' END;
+  UPDATE documents SET category = CASE type
+    WHEN 'flight_reservation' THEN 'transportation'
+    WHEN 'other_transport' THEN 'transportation'
+    WHEN 'hotel_reservation' THEN 'accommodation'
+    WHEN 'attraction_ticket' THEN 'activities'
+    WHEN 'passport' THEN 'personal'
+    WHEN 'visa' THEN 'personal'
+    ELSE 'other' END;
+  `,
 ];
 
 export async function migrate(db: Db): Promise<void> {

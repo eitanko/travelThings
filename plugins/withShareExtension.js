@@ -8,7 +8,7 @@ const { withXcodeProject, withEntitlementsPlist, withDangerousMod } = require('@
 
 const NAME = 'ShareExtension';
 const SRC = 'targets/share';
-const SWIFT = ['Models.swift', 'Draft.swift', 'ShareModel.swift', 'ReviewView.swift', 'ShareViewController.swift'];
+const SWIFT = ['Classification.swift', 'Models.swift', 'Draft.swift', 'ShareModel.swift', 'ReviewView.swift', 'ShareViewController.swift'];
 const FILES = [...SWIFT, 'Info.plist', 'share.entitlements'];
 
 module.exports = function withShareExtension(config, { groupId, bundleSuffix = 'share' }) {

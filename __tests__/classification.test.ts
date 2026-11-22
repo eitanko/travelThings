@@ -7,6 +7,7 @@ import {
   CATEGORY_DATE_LABEL,
   CATEGORY_LABEL,
   CATEGORY_TYPES,
+  PRIMARY_DATE_LABEL,
   TYPE_INFO,
   filterOf,
   primaryDate,
@@ -162,5 +163,32 @@ describe('share extension compatibility', () => {
     expect(parsePackage(JSON.stringify({ ...base, type: 'flight' }))?.type).toBe('flight_reservation');
     expect(parsePackage(JSON.stringify({ ...base, type: 'passport' }))?.type).toBe('passport');
     expect(parsePackage(JSON.stringify({ ...base, type: 'nonsense' }))?.type).toBeNull();
+  });
+});
+
+describe('Share extension classification (#17)', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { generate, OUT } = require('../scripts/generate-share-classification.js');
+
+  it('the committed Classification.swift is generated from classification.ts (run `npm run generate:share`)', () => {
+    expect(fs.readFileSync(OUT, 'utf8')).toBe(generate());
+  });
+
+  it('exposes every category, type, and the date label per category', () => {
+    const swift: string = generate();
+    for (const c of CATEGORIES) {
+      expect(swift).toContain(`case .${c}: return "${PRIMARY_DATE_LABEL[c]}"`);
+      expect(swift).toContain(`case .${c}: return [${CATEGORY_TYPES[c].map((t) => '.' + t).join(', ')}]`);
+    }
+    for (const t of DOCUMENT_TYPES) expect(swift).toContain(`case .${t}: return ${JSON.stringify(TYPE_INFO[t].label)}`);
+    expect(PRIMARY_DATE_LABEL).toEqual({
+      transportation: 'Travel date', accommodation: 'Check-in date', activities: 'Event date', personal: 'Expiration date', other: 'Event date',
+    });
+  });
+
+  it('every type key the extension can write is a valid app type', () => {
+    const swift: string = generate();
+    const declared = /enum DocType[^\n]*\n\s+case ([^\n]+)/.exec(swift)![1]!.split(', ');
+    expect(declared).toEqual([...DOCUMENT_TYPES]);
   });
 });

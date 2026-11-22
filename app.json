@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "TravelThings",
+    "name": "Travel Things",
     "slug": "travelthings",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -8,7 +8,14 @@
     "userInterfaceStyle": "automatic",
     "backgroundColor": "#f2f2f7",
     "newArchEnabled": true,
+    "icon": "./assets/icon/icon-light.png",
     "ios": {
+      "icon": {
+        "light": "./assets/icon/icon-light.png",
+        "dark": "./assets/icon/icon-dark.png",
+        "tinted": "./assets/icon/icon-tinted.png"
+      },
+      "userInterfaceStyle": "automatic",
       "supportsTablet": false,
       "bundleIdentifier": "com.eitankoren.travelthings",
       "buildNumber": "1",
@@ -33,15 +40,15 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "TravelThings needs access to your photos so you can save tickets and screenshots.",
-          "cameraPermission": "TravelThings needs the camera so you can photograph a document."
+          "photosPermission": "Travel Things needs access to your photos so you can save tickets and screenshots.",
+          "cameraPermission": "Travel Things needs the camera so you can photograph a document."
         }
       ],
       "expo-document-picker",
       [
         "react-native-document-scanner-plugin",
         {
-          "cameraPermission": "TravelThings needs the camera to scan paper documents."
+          "cameraPermission": "Travel Things needs the camera to scan paper documents."
         }
       ],
       [

@@ -102,7 +102,7 @@ async function ensureCameraPermission(): Promise<void> {
     throw new AppError(
       'PERMISSION_DENIED',
       undefined,
-      'Camera access is turned off. Allow it in Settings → TravelThings → Camera, then try again.',
+      'Camera access is turned off. Allow it in Settings → Travel Things → Camera, then try again.',
     );
   }
 }
@@ -139,7 +139,7 @@ async function scan(): Promise<StagedFile[]> {
     throw new AppError(
       'UNKNOWN',
       undefined,
-      'Document scanning needs a TravelThings development build. It isn’t available in Expo Go.',
+      'Document scanning needs a Travel Things development build. It isn’t available in Expo Go.',
     );
   }
   try {

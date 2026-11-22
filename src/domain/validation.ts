@@ -29,7 +29,7 @@ export function resolveMimeType(name: string, reported?: string | null): string 
   if (r.startsWith('image/')) return r === 'image/jpg' ? 'image/jpeg' : r;
   const fromExt = IMAGE_EXT[ext];
   if (fromExt) return fromExt;
-  throw new AppError('UNSUPPORTED_FORMAT', undefined, `“${name}” can’t be saved. TravelThings supports PDF files and images.`);
+  throw new AppError('UNSUPPORTED_FORMAT', undefined, `“${name}” can’t be saved. Travel Things supports PDF files and images.`);
 }
 
 export function normalizeStaged(files: StagedFile[]): StagedFile[] {

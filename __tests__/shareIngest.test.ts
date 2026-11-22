@@ -49,8 +49,10 @@ function writePackage(importId: string, files: { name: string; bytes: Buffer }[]
     createdAt: Date.now(),
     tripId: DEFAULT_TRIP_ID,
     title: null,
+    category: null,
     type: null,
     activityDate: null,
+    expirationDate: null,
     duplicate: { kind: 'new' },
     files: entries,
     ...over,
@@ -159,5 +161,76 @@ describe('ingestPackages', () => {
   it('needs no notification permission or running UI: ingestion works from files alone', async () => {
     writePackage('imp-11', [{ name: 'a.pdf', bytes: pdf('a') }]);
     await expect(ingestPackages(h.svc, store())).resolves.toMatchObject({ incorporated: 1 });
+  });
+});
+
+describe('classification in share packages (#17)', () => {
+  const raw = (importId: string, extra: Record<string, unknown>) => {
+    const dir = path.join(inboxDir, importId);
+    fs.mkdirSync(dir, { recursive: true });
+    const bytes = pdf(importId);
+    fs.writeFileSync(path.join(dir, '0-a.pdf'), bytes);
+    fs.writeFileSync(
+      path.join(dir, 'package.json'),
+      JSON.stringify({
+        schemaVersion: 1, importId, createdAt: 1, tripId: DEFAULT_TRIP_ID, duplicate: { kind: 'new' },
+        files: [{ name: 'a.pdf', mimeType: 'application/pdf', path: '0-a.pdf', size: bytes.length }],
+        ...extra,
+      }),
+    );
+  };
+
+  it('boarding pass: Transportation → Boarding pass with its travel date, surviving a restart', async () => {
+    raw('bp', { category: 'transportation', type: 'boarding_pass', activityDate: '2026-12-01' });
+    await ingestPackages(h.svc, store());
+    const doc = (await (await h.restart()).svc.list())[0]!;
+    expect(doc).toMatchObject({ category: 'transportation', type: 'boarding_pass', activityDate: '2026-12-01', expirationDate: null });
+  });
+
+  it('passport: Personal Documents → Passport with an expiration date', async () => {
+    raw('pp', { category: 'personal', type: 'passport', expirationDate: '2031-05-06' });
+    await ingestPackages(h.svc, store());
+    expect((await h.svc.list())[0]).toMatchObject({ category: 'personal', type: 'passport', expirationDate: '2031-05-06', activityDate: null });
+  });
+
+  it('hotel reservation carries a single check-in date', async () => {
+    raw('ht', { category: 'accommodation', type: 'hotel_reservation', activityDate: '2026-08-10' });
+    await ingestPackages(h.svc, store());
+    expect((await h.svc.list())[0]).toMatchObject({ category: 'accommodation', type: 'hotel_reservation', activityDate: '2026-08-10', expirationDate: null });
+  });
+
+  it('a category without a type gets that category’s catch-all type', async () => {
+    raw('cat', { category: 'activities' });
+    await ingestPackages(h.svc, store());
+    expect((await h.svc.list())[0]).toMatchObject({ category: 'activities', type: 'other_activity' });
+  });
+
+  it('no classification and no dates → Other / General file', async () => {
+    raw('none', {});
+    await ingestPackages(h.svc, store());
+    expect((await h.svc.list())[0]).toMatchObject({ category: 'other', type: 'general_file', activityDate: null, expirationDate: null });
+  });
+
+  it('packages written by the previous extension (legacy type key, no category/expiration) still ingest', async () => {
+    raw('old', { title: 'Old', type: 'hotel', activityDate: '2026-01-02' });
+    await ingestPackages(h.svc, store());
+    expect((await h.svc.list())[0]).toMatchObject({ title: 'Old', category: 'accommodation', type: 'hotel_reservation', activityDate: '2026-01-02' });
+  });
+
+  it('invalid values are dropped, never losing the document', async () => {
+    raw('bad', { category: 'nope', type: 'nope', activityDate: 'tomorrow', expirationDate: '2026-13-45' });
+    expect(await ingestPackages(h.svc, store())).toMatchObject({ incorporated: 1, failed: 0 });
+    expect((await h.svc.list())[0]).toMatchObject({ category: 'other', type: 'general_file', activityDate: null, expirationDate: null });
+  });
+
+  it('a type decides the category when they disagree', async () => {
+    raw('mix', { category: 'transportation', type: 'passport' });
+    await ingestPackages(h.svc, store());
+    expect((await h.svc.list())[0]).toMatchObject({ category: 'personal', type: 'passport' });
+  });
+
+  it('parsePackage defaults missing fields', () => {
+    const p = parsePackage(JSON.stringify({ schemaVersion: 1, importId: 'a', tripId: 't', files: [{ name: 'x.pdf', mimeType: 'application/pdf', path: '0-x.pdf', size: 3 }] }));
+    expect(p).toMatchObject({ category: null, type: null, activityDate: null, expirationDate: null });
   });
 });

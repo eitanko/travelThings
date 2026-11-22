@@ -38,7 +38,7 @@ struct ReviewView: View {
             Text("Preparing…").foregroundColor(TT.secondary)
           }
         case .unsupported:
-          message(icon: "doc.badge.ellipsis", title: "Nothing to import", body: "Only PDF files and images can be added to TravelThings.")
+          message(icon: "doc.badge.ellipsis", title: "Nothing to import", body: "Only PDF files and images can be added to Travel Things.")
         case .fatal(let text):
           message(icon: "exclamationmark.triangle", title: "Couldn’t open", body: text)
         default:
@@ -118,7 +118,7 @@ struct ReviewView: View {
   private var savedOverlay: some View {
     VStack(spacing: 10) {
       Image(systemName: "checkmark.circle.fill").font(.system(size: 52)).foregroundColor(.green)
-      Text("Saved to TravelThings").font(.headline).foregroundColor(TT.label)
+      Text("Saved to Travel Things").font(.headline).foregroundColor(TT.label)
       Text(model.items.count > 1 ? "\(model.items.count) files added as one document." : "It will appear in \(model.tripName) next time you open the app.")
         .font(.subheadline).foregroundColor(TT.secondary).multilineTextAlignment(.center)
     }
@@ -138,8 +138,11 @@ struct ReviewView: View {
         }
         field("Save to") { tripRow }
         field("Title") { titleField }
-        field("Type") { typeChips }
-        field("Activity date") { dateRow }
+        field("Category") { categoryChips }
+        if let c = model.category {
+          field("Type") { typeChips(for: c) }
+        }
+        field(model.effectiveCategory.dateLabel) { dateRow }
         Text("Everything is optional — you can save right away and fill this in later.")
           .font(.footnote).foregroundColor(TT.secondary).padding(.horizontal, 22).padding(.top, 18).padding(.bottom, 24)
       }
@@ -218,24 +221,35 @@ struct ReviewView: View {
     .padding(.leading, 14).padding(.trailing, 8).frame(minHeight: 50).background(TT.card).clipShape(RoundedRectangle(cornerRadius: 14))
   }
 
-  private var typeChips: some View {
+  private var categoryChips: some View {
     FlowLayout(spacing: 8) {
-      ForEach(DocType.allCases) { t in
-        let on = model.type == t
-        Button { model.type = on ? nil : t } label: {
-          HStack(spacing: 7) {
-            Image(systemName: t.symbol).font(.system(size: 15))
-            Text(t.label).font(.system(size: 15, weight: on ? .semibold : .regular))
-          }
-          .foregroundColor(on ? TT.blue : TT.label)
-          .padding(.vertical, 10).padding(.horizontal, 14)
-          .background(Capsule().fill(on ? TT.blueTint : TT.card))
-          .overlay(Capsule().stroke(on ? TT.blue : Color.clear, lineWidth: 1.5))
-        }
-        .accessibilityLabel(t.label)
-        .accessibilityAddTraits(on ? .isSelected : [])
+      ForEach(DocCategory.allCases) { c in
+        chip(c.label, symbol: nil, on: model.category == c) { model.select(category: c) }
       }
     }
+  }
+
+  private func typeChips(for category: DocCategory) -> some View {
+    FlowLayout(spacing: 8) {
+      ForEach(category.types) { t in
+        chip(t.label, symbol: t.symbol, on: model.type == t) { model.select(type: t) }
+      }
+    }
+  }
+
+  private func chip(_ label: String, symbol: String?, on: Bool, action: @escaping () -> Void) -> some View {
+    Button(action: action) {
+      HStack(spacing: 7) {
+        if let symbol { Image(systemName: symbol).font(.system(size: 15)) }
+        Text(label).font(.system(size: 15, weight: on ? .semibold : .regular))
+      }
+      .foregroundColor(on ? TT.blue : TT.label)
+      .padding(.vertical, 10).padding(.horizontal, 14)
+      .background(Capsule().fill(on ? TT.blueTint : TT.card))
+      .overlay(Capsule().stroke(on ? TT.blue : Color.clear, lineWidth: 1.5))
+    }
+    .accessibilityLabel(label)
+    .accessibilityAddTraits(on ? .isSelected : [])
   }
 
   private var dateRow: some View {
@@ -256,9 +270,9 @@ struct ReviewView: View {
           Text("Add date (optional)").font(.system(size: 17)).foregroundColor(TT.placeholder)
             .frame(maxWidth: .infinity, alignment: .leading).padding(14).frame(minHeight: 50)
             .background(TT.card).clipShape(RoundedRectangle(cornerRadius: 14))
-        }.accessibilityLabel("Add activity date, optional")
+        }.accessibilityLabel("Add \(model.effectiveCategory.dateLabel.lowercased()), optional")
       }
-      Text(model.date == nil ? "Optional — the day this document is needed, e.g. a flight or check-in day." : "")
+      Text(model.date == nil ? model.effectiveCategory.dateHint : "")
         .font(.footnote).foregroundColor(TT.secondary).padding(.horizontal, 6)
     }
   }

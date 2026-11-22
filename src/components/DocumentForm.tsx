@@ -2,7 +2,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import React from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { diffDays, formatLong, parseISODate, relative, toISODate } from '@/domain/dates';
-import { CATEGORY_DATE_LABEL, CATEGORY_LABEL, CATEGORY_TYPES, TYPE_INFO, fallbackType, resolveClassification } from '@/domain/classification';
+import { CATEGORY_DATE_LABEL, CATEGORY_LABEL, DATE_HINT, CATEGORY_TYPES, TYPE_INFO, fallbackType, resolveClassification } from '@/domain/classification';
 import { EXPIRATION_LABEL, expirationStatus } from '@/domain/expiration';
 import { CATEGORIES, type DocumentMetadata } from '@/domain/types';
 import { useToday } from '@/state/useToday';
@@ -15,14 +15,6 @@ interface Props {
   onChange: (m: DocumentMetadata) => void;
   disabled?: boolean;
 }
-
-const HINT = {
-  transportation: 'Optional — the day you travel, so this is easy to find beforehand.',
-  accommodation: 'Optional — your check-in day. No check-out date needed.',
-  activities: 'Optional — the day of the visit or event.',
-  personal: '',
-  other: 'Optional — a day this is useful, if any.',
-} as const;
 
 /** Title / Category / Type / date. All optional (spec FR-04). No description, location, booking ref or trip. */
 export function DocumentForm({ value, onChange, disabled }: Props) {
@@ -192,7 +184,7 @@ export function DocumentForm({ value, onChange, disabled }: Props) {
         </>
       ) : (
         <>
-          {dateField('activityDate', dateLabel, `Remove ${dateLabel.toLowerCase()}`, `Add ${dateLabel.toLowerCase()}`, HINT[category])}
+          {dateField('activityDate', dateLabel, `Remove ${dateLabel.toLowerCase()}`, `Add ${dateLabel.toLowerCase()}`, DATE_HINT[category])}
           {value.expirationDate ? expirationField : null}
         </>
       )}

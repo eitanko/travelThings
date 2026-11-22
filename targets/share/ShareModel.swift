@@ -23,7 +23,10 @@ final class ShareModel: ObservableObject {
   @Published var phase: Phase = .loading
   @Published var items: [Item] = []
   @Published var title = ""
+  /// Nil until the user picks one; saving then falls back to Other / General file in the app.
+  @Published var category: DocCategory? = nil
   @Published var type: DocType? = nil
+  /// One optional date. Which field it fills depends on the category at save time, so switching category keeps it.
   @Published var date: Date? = nil
   @Published var tripId = Shared.defaultTripId
   @Published var saveError: String? = nil
@@ -41,6 +44,20 @@ final class ShareModel: ObservableObject {
   init() {
     root = Shared.root()
     snapshot = ShareSnapshot.load(root: Shared.root())
+  }
+
+  /// Category chosen, or the default shown before any choice (drives the date label).
+  var effectiveCategory: DocCategory { category ?? Classification.defaultCategory }
+
+  func select(category c: DocCategory) {
+    if category == c { return }
+    category = c
+    if let t = type, t.category != c { type = nil } // a type from another category can't stay; the date is kept
+  }
+
+  func select(type t: DocType) {
+    type = (type == t) ? nil : t
+    if type != nil { category = t.category }
   }
 
   var trips: [SnapshotTrip] { snapshot.trips }
@@ -169,7 +186,7 @@ final class ShareModel: ObservableObject {
     phase = .saving
     saveError = nil
     let snapshots = items
-    let meta = (title: title, type: type, date: date, tripId: tripId)
+    let meta = (title: title, category: category, type: type, date: date, tripId: tripId)
     let known = snapshot.docs
     let importId = importId
     Task.detached {
@@ -199,6 +216,8 @@ final class ShareModel: ObservableObject {
           moved[item.id] = dest
           files.append(PackageFile(name: item.name, mimeType: item.mimeType, path: rel, size: item.size))
         }
+        let expiry = (meta.type?.category ?? meta.category)?.usesExpirationDate ?? false
+        let isoDate = meta.date.map(Self.isoDay)
         let trimmed = meta.title.trimmingCharacters(in: .whitespacesAndNewlines)
         let package = SharePackage(
           schemaVersion: Shared.schemaVersion,
@@ -206,8 +225,10 @@ final class ShareModel: ObservableObject {
           createdAt: (Date().timeIntervalSince1970 * 1000).rounded(),
           tripId: meta.tripId,
           title: trimmed.isEmpty ? nil : String(trimmed.prefix(Shared.maxTitleLength)),
+          category: (meta.type?.category ?? meta.category)?.rawValue,
           type: meta.type?.rawValue,
-          activityDate: meta.date.map(Self.isoDay),
+          activityDate: expiry ? nil : isoDate,
+          expirationDate: expiry ? isoDate : nil,
           duplicate: chosen ?? .new,
           files: files
         )

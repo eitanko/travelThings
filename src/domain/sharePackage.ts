@@ -1,5 +1,6 @@
 import { normalizeLegacyType } from './classification';
-import type { DocumentType } from './types';
+import { isCategory } from './validation';
+import type { Category, DocumentType } from './types';
 
 /**
  * Contract between the iOS Share extension (targets/share, Swift) and the main app.
@@ -33,8 +34,14 @@ export interface SharePackage {
   createdAt: number;
   tripId: string;
   title: string | null;
+  /** Added with #17. Absent in older packages (→ null). */
+  category: Category | null;
+  /** New subtype key, or a legacy key from older extension builds (normalized on read). */
   type: DocumentType | null;
+  /** Event / travel / check-in date. Absent or invalid → null. */
   activityDate: string | null;
+  /** Added with #17: expiration date for Personal Documents. Absent in older packages (→ null). */
+  expirationDate: string | null;
   duplicate: DuplicateIntent;
   files: PackageFile[];
 }
@@ -77,8 +84,10 @@ export function parsePackage(raw: string): SharePackage | null {
     createdAt: typeof v.createdAt === 'number' ? v.createdAt : 0,
     tripId: v.tripId,
     title: isStr(v.title) ? v.title : null,
+    category: isCategory(v.category) ? v.category : null,
     type: normalizeLegacyType(v.type),
     activityDate: isStr(v.activityDate) ? v.activityDate : null,
+    expirationDate: isStr(v.expirationDate) ? v.expirationDate : null,
     duplicate,
     files,
   };

@@ -21,6 +21,18 @@ export const CATEGORY_DATE_LABEL: Record<Category, string> = {
   other: 'Event date',
 };
 
+/** The label of the one date field offered for a category (what `primaryDate` stores). Shared with the iOS Share extension. */
+export const PRIMARY_DATE_LABEL: Record<Category, string> = { ...CATEGORY_DATE_LABEL, personal: 'Expiration date' };
+
+/** Helper text under the date field. Shared with the iOS Share extension. */
+export const DATE_HINT: Record<Category, string> = {
+  transportation: 'Optional — the day you travel, so this is easy to find beforehand.',
+  accommodation: 'Optional — your check-in day. No check-out date needed.',
+  activities: 'Optional — the day of the visit or event.',
+  personal: '',
+  other: 'Optional — a day this is useful, if any.',
+};
+
 export interface TypeInfo {
   label: string;
   category: Category;

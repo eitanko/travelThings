@@ -27,12 +27,12 @@ const MESSAGES: Record<AppErrorCode, { title: string; message: string; retryable
   },
   UNSUPPORTED_FORMAT: {
     title: 'Unsupported file',
-    message: 'TravelThings can save PDF files and images (JPEG, PNG, HEIC, and similar).',
+    message: 'Travel Things can save PDF files and images (JPEG, PNG, HEIC, and similar).',
     retryable: false,
   },
   PERMISSION_DENIED: {
     title: 'Permission needed',
-    message: 'Allow access in Settings → TravelThings, then try again.',
+    message: 'Allow access in Settings → Travel Things, then try again.',
     retryable: false,
   },
   FILE_MISSING: {

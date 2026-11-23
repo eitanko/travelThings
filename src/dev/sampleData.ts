@@ -16,7 +16,7 @@ const SAMPLES: Sample[] = [
   {
     fileName: 'SK395-boarding-pass.pdf',
     title: 'Flight to Barcelona',
-    type: 'flight',
+    type: 'flight_reservation',
     offsetDays: 28,
     pages: [
       { heading: 'Skyline Air - Boarding pass', lines: ['Passenger: ALEX TRAVELER', 'Flight: SK 395', 'From: Tel Aviv (TLV)', 'To: Barcelona (BCN)', 'Gate / Seat: C14 / 12A'], barcode: true },
@@ -26,7 +26,7 @@ const SAMPLES: Sample[] = [
   {
     fileName: 'Hotel Pyrenees booking.pdf',
     title: null, // intentionally untitled: the library shows the original filename
-    type: 'hotel',
+    type: 'hotel_reservation',
     offsetDays: 30,
     pages: [
       { heading: 'Hotel Pyrenees - Confirmation', lines: ['Guest: Alex Traveler', 'Check-in: from 15:00', 'Check-out: until 11:00', 'Room: Double, mountain view', 'Confirmation: HP-88213'] },
@@ -36,14 +36,14 @@ const SAMPLES: Sample[] = [
   {
     fileName: 'alpbus-ticket.pdf',
     title: 'Bus Barcelona to Andorra',
-    type: 'transport',
+    type: 'train_ticket',
     offsetDays: 30,
     pages: [{ heading: 'AlpBus - Bus ticket', lines: ['Passenger: Alex Traveler', 'Route: Barcelona Nord - Andorra la Vella', 'Departs: 08:30', 'Seat: 14'], barcode: true }],
   },
   {
     fileName: 'caldea-entry.pdf',
     title: 'Attraction tickets',
-    type: 'attraction',
+    type: 'attraction_ticket',
     offsetDays: 32,
     pages: [{ heading: 'Caldea Spa - Entry tickets', lines: ['Visitors: 2 adults', 'Slot: 16:00 - 19:00', 'Order: CAL-55021'], barcode: true }],
   },
@@ -57,14 +57,14 @@ const SAMPLES: Sample[] = [
   {
     fileName: 'rail-catalunya-r11.pdf',
     title: 'Old train ticket',
-    type: 'transport',
+    type: 'train_ticket',
     offsetDays: -45,
     pages: [{ heading: 'Rail Catalunya - Train ticket', lines: ['Train: R11 07:12', 'Coach / Seat: 3 / 21'], barcode: true }],
   },
   {
     fileName: 'AeroLink-shuttle-voucher.pdf',
     title: 'Airport shuttle voucher',
-    type: 'transport',
+    type: 'train_ticket',
     offsetDays: 0,
     pages: [{ heading: 'AeroLink - Shuttle voucher', lines: ['Passengers: 1', 'Voucher: AL-7731', 'Pickup: Terminal 1'], barcode: true }],
   },

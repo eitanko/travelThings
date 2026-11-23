@@ -20,7 +20,7 @@ interface Props {
 export function DocumentRow({ doc, first, onPress, highlighted, today }: Props) {
   const { colors, styles } = useThemedStyles(makeStyles);
   const T = typeInfo(doc);
-  const tint = useTypeTint(doc.type);
+  const tint = useTypeTint(doc.category);
   const n = doc.attachments.length;
   const diff = doc.activityDate ? diffDays(doc.activityDate) : null;
   const title = displayTitle(doc);

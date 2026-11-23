@@ -1,6 +1,7 @@
 import { DocumentRepository } from '@/db/repository';
 import { AppError, toAppError } from '@/domain/errors';
 import { attachmentKind, fingerprintInput } from '@/domain/documents';
+import { resolveClassification } from '@/domain/classification';
 import { DEFAULT_TRIP_ID, cleanTripName, sameTripName } from '@/domain/trips';
 import { normalizeStaged, resolveMimeType, safeFileName, sanitizeMetadata } from '@/domain/validation';
 import type { Attachment, Document, DocumentMetadata, StagedFile, Trip } from '@/domain/types';
@@ -111,6 +112,7 @@ export class DocumentService {
         if (!existing) throw new AppError('DATABASE_FAILED');
         const merged: DocumentMetadata = {
           title: meta.title ?? existing.title,
+          category: meta.category ?? existing.category,
           type: meta.type ?? existing.type,
           activityDate: meta.activityDate ?? existing.activityDate,
           expirationDate: meta.expirationDate ?? existing.expirationDate,
@@ -136,7 +138,7 @@ export class DocumentService {
         tripId,
         originalName,
         title: title ?? null,
-        type: meta.type,
+        ...resolveClassification(meta),
         activityDate: meta.activityDate,
         expirationDate: meta.expirationDate,
         importedAt,

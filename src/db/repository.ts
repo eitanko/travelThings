@@ -1,5 +1,6 @@
 import { AppError, toAppError } from '@/domain/errors';
-import type { Attachment, Document, DocumentMetadata, DocumentType, Trip } from '@/domain/types';
+import { resolveClassification } from '@/domain/classification';
+import type { Attachment, Document, Category, DocumentMetadata, DocumentType, Trip } from '@/domain/types';
 import type { Db } from './types';
 
 interface DocRow {
@@ -7,6 +8,7 @@ interface DocRow {
   trip_id: string;
   original_name: string;
   title: string | null;
+  category: string | null;
   type: string | null;
   activity_date: string | null;
   expiration_date: string | null;
@@ -47,12 +49,16 @@ const toAttachment = (r: AttRow): Attachment => ({
   rotationTurns: r.rotation_turns ?? 0,
 });
 
+/** Rows written before v7 are rewritten by the migration, but stay defensive: anything unrecognised is Other / General file. */
+const classify = (r: Pick<DocRow, 'category' | 'type'>): { category: Category; type: DocumentType } =>
+  resolveClassification({ category: r.category as Category | null, type: r.type as DocumentType | null });
+
 const toDocument = (r: DocRow, atts: Attachment[]): Document => ({
   id: r.id,
   tripId: r.trip_id,
   originalName: r.original_name,
   title: r.title,
-  type: r.type as DocumentType | null,
+  ...classify(r),
   activityDate: r.activity_date,
   expirationDate: r.expiration_date ?? null,
   importedAt: r.imported_at,
@@ -144,9 +150,9 @@ export class DocumentRepository {
     await this.guard(() =>
       this.db.withTransaction(async (tx) => {
         await tx.runAsync(
-          `INSERT INTO documents (id, trip_id, original_name, title, type, activity_date, expiration_date, imported_at, fingerprint, storage_key)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [doc.id, doc.tripId, doc.originalName, doc.title, doc.type, doc.activityDate, doc.expirationDate, doc.importedAt, doc.fingerprint, doc.storageKey],
+          `INSERT INTO documents (id, trip_id, original_name, title, category, type, activity_date, expiration_date, imported_at, fingerprint, storage_key)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [doc.id, doc.tripId, doc.originalName, doc.title, doc.category, doc.type, doc.activityDate, doc.expirationDate, doc.importedAt, doc.fingerprint, doc.storageKey],
         );
         await insertAttachments(tx, doc.attachments);
         if (importId) await recordImport(tx, importId, doc.id);
@@ -159,10 +165,12 @@ export class DocumentRepository {
   }
 
   async updateMetadata(id: string, meta: DocumentMetadata): Promise<void> {
+    const c = resolveClassification(meta);
     await this.guard(async () => {
-      await this.db.runAsync('UPDATE documents SET title = ?, type = ?, activity_date = ?, expiration_date = ? WHERE id = ?', [
+      await this.db.runAsync('UPDATE documents SET title = ?, category = ?, type = ?, activity_date = ?, expiration_date = ? WHERE id = ?', [
         meta.title,
-        meta.type,
+        c.category,
+        c.type,
         meta.activityDate,
         meta.expirationDate,
         id,
@@ -244,13 +252,14 @@ export class DocumentRepository {
     meta: DocumentMetadata,
     importId?: string,
   ): Promise<void> {
+    const c = resolveClassification(meta);
     await this.guard(() =>
       this.db.withTransaction(async (tx) => {
         await tx.runAsync('DELETE FROM attachments WHERE document_id = ?', [id]);
         await tx.runAsync(
           `UPDATE documents SET original_name = ?, fingerprint = ?, storage_key = ?, imported_at = ?,
-             title = ?, type = ?, activity_date = ?, expiration_date = ? WHERE id = ?`,
-          [next.originalName, next.fingerprint, next.storageKey, next.importedAt, meta.title, meta.type, meta.activityDate, meta.expirationDate, id],
+             title = ?, category = ?, type = ?, activity_date = ?, expiration_date = ? WHERE id = ?`,
+          [next.originalName, next.fingerprint, next.storageKey, next.importedAt, meta.title, c.category, c.type, meta.activityDate, meta.expirationDate, id],
         );
         await insertAttachments(tx, next.attachments);
         if (importId) await recordImport(tx, importId, id);

@@ -1,4 +1,4 @@
-# TravelThings
+# Travel Things
 
 An offline-first travel document wallet for iOS. Save tickets, bookings, passports and visas as PDFs or images, add optional details, and find them again instantly, with no connection needed.
 

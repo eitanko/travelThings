@@ -72,7 +72,13 @@ export async function ingestPackages(svc: DocumentService, inbox: InboxStore): P
 
       const doc = await svc.commit(
         prepared,
-        { title: manifest.title, type: manifest.type, activityDate: manifest.activityDate },
+        {
+          title: manifest.title,
+          category: manifest.category,
+          type: manifest.type,
+          activityDate: manifest.activityDate,
+          expirationDate: manifest.expirationDate,
+        },
         mode,
         tripId,
         manifest.importId,

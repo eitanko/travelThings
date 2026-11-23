@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { type ImageStyle, StyleSheet, type TextStyle, useColorScheme, type ViewStyle } from 'react-native';
-import type { DocumentType } from '@/domain/types';
+import type { Category } from '@/domain/types';
 
 /**
  * Semantic color tokens. Every UI color goes through one of these; screens never hardcode a hex value.
@@ -155,30 +155,26 @@ export function useThemedStyles<T extends Record<string, ViewStyle | TextStyle |
 }
 
 /** Document-type tints (icon color + chip background) for the category indicators. */
-const TYPE_TINTS: Record<Scheme, Record<DocumentType, { color: string; background: string }>> = {
+const TYPE_TINTS: Record<Scheme, Record<Category, { color: string; background: string }>> = {
   light: {
-    flight: { color: '#2f7df6', background: '#e8f0fe' },
-    hotel: { color: '#e8833a', background: '#fdf0e6' },
-    transport: { color: '#2fa66b', background: '#e5f6ec' },
-    attraction: { color: '#d6498c', background: '#fce8f2' },
-    passport: { color: '#5b6078', background: '#ececf3' },
-    visa: { color: '#0f9aa8', background: '#e0f4f6' },
+    transportation: { color: '#2f7df6', background: '#e8f0fe' },
+    accommodation: { color: '#e8833a', background: '#fdf0e6' },
+    activities: { color: '#d6498c', background: '#fce8f2' },
+    personal: { color: '#5b6078', background: '#ececf3' },
     other: { color: '#8e8e93', background: '#efeff2' },
   },
   dark: {
-    flight: { color: '#6aa8ff', background: '#16284a' },
-    hotel: { color: '#ffa05c', background: '#3d2713' },
-    transport: { color: '#4cd08b', background: '#12341f' },
-    attraction: { color: '#ff7ab6', background: '#40182f' },
-    passport: { color: '#a3a9c4', background: '#2a2d3d' },
-    visa: { color: '#3dc8d6', background: '#0f3338' },
+    transportation: { color: '#6aa8ff', background: '#16284a' },
+    accommodation: { color: '#ffa05c', background: '#3d2713' },
+    activities: { color: '#ff7ab6', background: '#40182f' },
+    personal: { color: '#a3a9c4', background: '#2a2d3d' },
     other: { color: '#98989f', background: '#2c2c2e' },
   },
 };
 
-/** Tint for a document type in the current appearance. `null` means "other", like `typeInfo`. */
-export function useTypeTint(type: DocumentType | null) {
-  return TYPE_TINTS[useScheme()][type ?? 'other'];
+/** Tint for a document category in the current appearance. */
+export function useTypeTint(category: Category) {
+  return TYPE_TINTS[useScheme()][category];
 }
 
 /** The full-screen viewer is dark in both appearances (like Photos), so it uses fixed colors. */

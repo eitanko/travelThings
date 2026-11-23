@@ -74,38 +74,13 @@ struct SharePackage: Codable {
   let createdAt: Double     // milliseconds since 1970, like Date.now()
   let tripId: String
   let title: String?
+  /// Category / type / dates use the keys of src/domain/classification.ts (see Classification.swift, generated).
+  let category: String?
   let type: String?
   let activityDate: String?
+  let expirationDate: String?
   let duplicate: DuplicateIntent
   let files: [PackageFile]
-}
-
-enum DocType: String, CaseIterable, Identifiable {
-  case flight, hotel, transport, attraction, passport, visa, other
-  var id: String { rawValue }
-  /// Same labels as the app's TYPE_INFO.
-  var label: String {
-    switch self {
-    case .flight: return "Flight"
-    case .hotel: return "Hotel"
-    case .transport: return "Transportation"
-    case .attraction: return "Attraction"
-    case .passport: return "Passport"
-    case .visa: return "Visa"
-    case .other: return "Other"
-    }
-  }
-  var symbol: String {
-    switch self {
-    case .flight: return "airplane"
-    case .hotel: return "bed.double"
-    case .transport: return "bus"
-    case .attraction: return "ticket"
-    case .passport: return "person.text.rectangle"
-    case .visa: return "checkmark.seal"
-    case .other: return "doc"
-    }
-  }
 }
 
 enum ShareError: Error, Equatable {
@@ -116,7 +91,7 @@ enum ShareError: Error, Equatable {
 
   var message: String {
     switch self {
-    case .storageUnavailable: return "TravelThings storage isn’t available. Open TravelThings once, then try again."
+    case .storageUnavailable: return "Travel Things storage isn’t available. Open Travel Things once, then try again."
     case .storageFull: return "There isn’t enough free space on this iPhone to save these files."
     case .readFailed(let n): return "“\(n)” can’t be read."
     case .writeFailed: return "The files couldn’t be saved. Nothing was added."

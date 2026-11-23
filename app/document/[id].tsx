@@ -9,6 +9,7 @@ import { PreviewCarousel, type PreviewItem } from '@/components/PreviewCarousel'
 import { useToast } from '@/components/Toast';
 import { errorSheet } from '@/components/showError';
 import { diffDays, formatLong, relative } from '@/domain/dates';
+import { CATEGORY_DATE_LABEL, CATEGORY_LABEL } from '@/domain/classification';
 import { attachmentKind, displayTitle, typeInfo } from '@/domain/documents';
 import { AppError } from '@/domain/errors';
 import { EXPIRATION_LABEL, expirationStatus } from '@/domain/expiration';
@@ -61,7 +62,7 @@ export default function DocumentDetailScreen() {
     };
   }, [doc]);
 
-  const tint = useTypeTint(doc?.type ?? null);
+  const tint = useTypeTint(doc?.category ?? 'other');
   const today = useToday();
 
   if (!doc) return <View style={styles.root} />;
@@ -195,6 +196,10 @@ export default function DocumentDetailScreen() {
 
         <View style={styles.card}>
           <View style={styles.kv}>
+            <Text style={styles.k}>Category</Text>
+            <Text style={styles.v}>{CATEGORY_LABEL[doc.category]}</Text>
+          </View>
+          <View style={[styles.kv, styles.kvBorder]}>
             <Text style={styles.k}>Type</Text>
             <Text style={styles.v}>{T.label}</Text>
           </View>
@@ -212,8 +217,9 @@ export default function DocumentDetailScreen() {
               <Icon name="chevR" size={14} color={colors.chevron} />
             </View>
           </Pressable>
+          {doc.category !== 'personal' || doc.activityDate ? (
           <View style={[styles.kv, styles.kvBorder]}>
-            <Text style={styles.k}>Activity date</Text>
+            <Text style={styles.k}>{CATEGORY_DATE_LABEL[doc.category]}</Text>
             {doc.activityDate && diff !== null ? (
               <View style={{ alignItems: 'flex-end', flexShrink: 1 }}>
                 <Text style={styles.v}>{formatLong(doc.activityDate)}</Text>
@@ -223,13 +229,18 @@ export default function DocumentDetailScreen() {
               <Text style={[styles.v, { color: colors.secondary, fontWeight: '400', fontStyle: 'italic' }]}>No date</Text>
             )}
           </View>
-          {doc.expirationDate ? (
-            <View style={[styles.kv, styles.kvBorder]} accessible accessibilityLabel={`Expiration date, ${formatLong(doc.expirationDate)}${expStatus !== 'none' ? `, ${EXPIRATION_LABEL[expStatus]}` : ''}`}>
+          ) : null}
+          {doc.expirationDate || doc.category === 'personal' ? (
+            <View style={[styles.kv, styles.kvBorder]} accessible accessibilityLabel={doc.expirationDate ? `Expiration date, ${formatLong(doc.expirationDate)}${expStatus !== 'none' ? `, ${EXPIRATION_LABEL[expStatus]}` : ''}` : 'Expiration date, none'}>
               <Text style={styles.k}>Expiration date</Text>
-              <View style={{ alignItems: 'flex-end', flexShrink: 1, gap: 4 }}>
-                <Text style={styles.v}>{formatLong(doc.expirationDate)}</Text>
-                <ExpirationBadge status={expStatus} />
-              </View>
+              {doc.expirationDate ? (
+                <View style={{ alignItems: 'flex-end', flexShrink: 1, gap: 4 }}>
+                  <Text style={styles.v}>{formatLong(doc.expirationDate)}</Text>
+                  <ExpirationBadge status={expStatus} />
+                </View>
+              ) : (
+                <Text style={[styles.v, { color: colors.secondary, fontWeight: '400', fontStyle: 'italic' }]}>No date</Text>
+              )}
             </View>
           ) : null}
         </View>

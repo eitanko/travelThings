@@ -2,9 +2,9 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import React from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { diffDays, formatLong, parseISODate, relative, toISODate } from '@/domain/dates';
-import { TYPE_INFO } from '@/domain/documents';
+import { CATEGORY_DATE_LABEL, CATEGORY_LABEL, DATE_HINT, CATEGORY_TYPES, TYPE_INFO, fallbackType, resolveClassification } from '@/domain/classification';
 import { EXPIRATION_LABEL, expirationStatus } from '@/domain/expiration';
-import { DOCUMENT_TYPES, type DocumentMetadata } from '@/domain/types';
+import { CATEGORIES, type DocumentMetadata } from '@/domain/types';
 import { useToday } from '@/state/useToday';
 import { type Palette, useScheme, useThemedStyles } from '@/theme';
 import { ExpirationBadge } from './ExpirationBadge';
@@ -16,14 +16,94 @@ interface Props {
   disabled?: boolean;
 }
 
-/** Title / Type / Activity date. All optional (spec FR-04). No description, location, booking ref or trip. */
+/** Title / Category / Type / date. All optional (spec FR-04). No description, location, booking ref or trip. */
 export function DocumentForm({ value, onChange, disabled }: Props) {
   const { colors, styles } = useThemedStyles(makeStyles);
   const scheme = useScheme();
   const set = (patch: Partial<DocumentMetadata>) => onChange({ ...value, ...patch });
-  const date = value.activityDate;
+  const { category, type } = resolveClassification(value);
+  const personal = category === 'personal';
+  const dateLabel = CATEGORY_DATE_LABEL[category];
   const expiry = value.expirationDate;
   const expStatus = expirationStatus(expiry, useToday());
+
+  const dateField = (key: 'activityDate', label: string, removeLabel: string, addLabel: string, hint: string) => {
+    const date = value[key];
+    return (
+      <View style={styles.field}>
+        <Text style={styles.label}>{label}</Text>
+        {date ? (
+          <View style={styles.inwrap}>
+            <View style={{ flex: 1, paddingHorizontal: 14, minHeight: 50, justifyContent: 'center' }}>
+              <DateTimePicker
+                themeVariant={scheme}
+                value={parseISODate(date)}
+                mode="date"
+                display="compact"
+                style={{ alignSelf: 'flex-start' }}
+                accessibilityLabel={label}
+                onChange={(_, d) => d && set({ [key]: toISODate(d) })}
+              />
+            </View>
+            <Pressable style={styles.clr} onPress={() => set({ [key]: null })} accessibilityRole="button" accessibilityLabel={removeLabel}>
+              <Icon name="x" size={12} color={colors.onAccent} strokeWidth={2.4} />
+            </Pressable>
+          </View>
+        ) : (
+          <Pressable
+            style={[styles.inwrap, { minHeight: 50, paddingLeft: 14 }]}
+            onPress={() => set({ [key]: toISODate(new Date()) })}
+            accessibilityRole="button"
+            accessibilityLabel={`${addLabel}, optional`}
+          >
+            <Text style={{ flex: 1, fontSize: 17, color: colors.placeholder }}>Add date (optional)</Text>
+          </Pressable>
+        )}
+        <Text style={styles.hint}>{date ? `${formatLong(date)} · ${relative(diffDays(date))}` : hint}</Text>
+      </View>
+    );
+  };
+
+  const expirationField = (
+    <View style={styles.field}>
+      <Text style={styles.label}>Expiration date</Text>
+      {expiry ? (
+        <View style={styles.inwrap}>
+          <View style={{ flex: 1, paddingHorizontal: 14, minHeight: 50, justifyContent: 'center' }}>
+            <DateTimePicker
+              themeVariant={scheme}
+              value={parseISODate(expiry)}
+              mode="date"
+              display="compact"
+              style={{ alignSelf: 'flex-start' }}
+              accessibilityLabel="Expiration date"
+              onChange={(_, d) => d && set({ expirationDate: toISODate(d) })}
+            />
+          </View>
+          <Pressable style={styles.clr} onPress={() => set({ expirationDate: null })} accessibilityRole="button" accessibilityLabel="Remove expiration date">
+            <Icon name="x" size={12} color={colors.onAccent} strokeWidth={2.4} />
+          </Pressable>
+        </View>
+      ) : (
+        <Pressable
+          style={[styles.inwrap, { minHeight: 50, paddingLeft: 14 }]}
+          onPress={() => set({ expirationDate: toISODate(new Date()) })}
+          accessibilityRole="button"
+          accessibilityLabel="Add expiration date, optional"
+        >
+          <Text style={{ flex: 1, fontSize: 17, color: colors.placeholder }}>Add expiration date (optional)</Text>
+        </Pressable>
+      )}
+      {expiry && expStatus !== 'none' ? (
+        <View style={styles.statusRow} accessible accessibilityLabel={EXPIRATION_LABEL[expStatus]}>
+          <ExpirationBadge status={expStatus} />
+        </View>
+      ) : null}
+      <Text style={styles.hint}>
+        {expiry ? formatLong(expiry) : 'Optional — leave empty if it doesn’t expire. You’ll see “About to expire” six months before.'}
+      </Text>
+    </View>
+  );
 
   return (
     <View pointerEvents={disabled ? 'none' : 'auto'} style={disabled ? { opacity: 0.6 } : undefined}>
@@ -49,18 +129,42 @@ export function DocumentForm({ value, onChange, disabled }: Props) {
       </View>
 
       <View style={styles.field}>
+        <Text style={styles.label}>Category</Text>
+        <View style={styles.chips}>
+          {CATEGORIES.map((c) => {
+            const on = category === c;
+            return (
+              <Pressable
+                key={c}
+                onPress={() => {
+                  // Same category: keep the chosen type. New category: its catch-all type (a type from another category can't stay).
+                  if (!on) set({ category: c, type: fallbackType(c) });
+                }}
+                accessibilityRole="button"
+                accessibilityState={{ selected: on }}
+                accessibilityLabel={`Category: ${CATEGORY_LABEL[c]}`}
+                style={[styles.chip, on && styles.chipOn]}
+              >
+                <Text style={[styles.chipText, on && { color: colors.blue, fontWeight: '600' }]}>{CATEGORY_LABEL[c]}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+
+      <View style={styles.field}>
         <Text style={styles.label}>Type</Text>
         <View style={styles.chips}>
-          {DOCUMENT_TYPES.map((k) => {
+          {CATEGORY_TYPES[category].map((k) => {
             const T = TYPE_INFO[k];
-            const on = value.type === k;
+            const on = type === k;
             return (
               <Pressable
                 key={k}
-                onPress={() => set({ type: on ? null : k })}
+                onPress={() => set({ category, type: k })}
                 accessibilityRole="button"
                 accessibilityState={{ selected: on }}
-                accessibilityLabel={T.label}
+                accessibilityLabel={`Type: ${T.label}`}
                 style={[styles.chip, on && styles.chipOn]}
               >
                 <Icon name={T.icon} size={17} color={on ? colors.blue : colors.label} />
@@ -71,81 +175,19 @@ export function DocumentForm({ value, onChange, disabled }: Props) {
         </View>
       </View>
 
-      <View style={styles.field}>
-        <Text style={styles.label}>Activity date</Text>
-        {date ? (
-          <View style={styles.inwrap}>
-            <View style={{ flex: 1, paddingHorizontal: 14, minHeight: 50, justifyContent: 'center' }}>
-              <DateTimePicker
-                themeVariant={scheme}
-                value={parseISODate(date)}
-                mode="date"
-                display="compact"
-                style={{ alignSelf: 'flex-start' }}
-                onChange={(_, d) => d && set({ activityDate: toISODate(d) })}
-              />
-            </View>
-            <Pressable style={styles.clr} onPress={() => set({ activityDate: null })} accessibilityRole="button" accessibilityLabel="Remove date">
-              <Icon name="x" size={12} color={colors.onAccent} strokeWidth={2.4} />
-            </Pressable>
-          </View>
-        ) : (
-          <Pressable
-            style={[styles.inwrap, { minHeight: 50, paddingLeft: 14 }]}
-            onPress={() => set({ activityDate: toISODate(new Date()) })}
-            accessibilityRole="button"
-            accessibilityLabel="Add activity date, optional"
-          >
-            <Text style={{ flex: 1, fontSize: 17, color: colors.placeholder }}>Add date (optional)</Text>
-          </Pressable>
-        )}
-        <Text style={styles.hint}>
-          {date
-            ? `${formatLong(date)} · ${relative(diffDays(date))}`
-            : 'Optional — the day this document is needed, e.g. a flight or check-in day.'}
-        </Text>
-      </View>
-
-      <View style={styles.field}>
-        <Text style={styles.label}>Expiration date</Text>
-        {expiry ? (
-          <View style={styles.inwrap}>
-            <View style={{ flex: 1, paddingHorizontal: 14, minHeight: 50, justifyContent: 'center' }}>
-              <DateTimePicker
-                themeVariant={scheme}
-                value={parseISODate(expiry)}
-                mode="date"
-                display="compact"
-                style={{ alignSelf: 'flex-start' }}
-                accessibilityLabel="Expiration date"
-                onChange={(_, d) => d && set({ expirationDate: toISODate(d) })}
-              />
-            </View>
-            <Pressable style={styles.clr} onPress={() => set({ expirationDate: null })} accessibilityRole="button" accessibilityLabel="Remove expiration date">
-              <Icon name="x" size={12} color={colors.onAccent} strokeWidth={2.4} />
-            </Pressable>
-          </View>
-        ) : (
-          <Pressable
-            style={[styles.inwrap, { minHeight: 50, paddingLeft: 14 }]}
-            onPress={() => set({ expirationDate: toISODate(new Date()) })}
-            accessibilityRole="button"
-            accessibilityLabel="Add expiration date, optional"
-          >
-            <Text style={{ flex: 1, fontSize: 17, color: colors.placeholder }}>Add expiration date (optional)</Text>
-          </Pressable>
-        )}
-        {expiry && expStatus !== 'none' ? (
-          <View style={styles.statusRow} accessible accessibilityLabel={EXPIRATION_LABEL[expStatus]}>
-            <ExpirationBadge status={expStatus} />
-          </View>
-        ) : null}
-        <Text style={styles.hint}>
-          {expiry
-            ? formatLong(expiry)
-            : 'Optional — for a passport, licence, ID card or visa. You’ll see “About to expire” six months before.'}
-        </Text>
-      </View>
+      {/* Primary date for the category first. The other date is only shown when it already has a value, so a date saved
+          before reclassifying is never hidden or silently lost. */}
+      {personal ? (
+        <>
+          {expirationField}
+          {value.activityDate ? dateField('activityDate', 'Event date', 'Remove event date', 'Add event date', '') : null}
+        </>
+      ) : (
+        <>
+          {dateField('activityDate', dateLabel, `Remove ${dateLabel.toLowerCase()}`, `Add ${dateLabel.toLowerCase()}`, DATE_HINT[category])}
+          {value.expirationDate ? expirationField : null}
+        </>
+      )}
 
       <Text style={[styles.hint, { marginHorizontal: 22, marginTop: 18, marginBottom: 24 }]}>
         Everything is optional — you can save right away and fill this in later.

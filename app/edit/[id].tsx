@@ -45,6 +45,7 @@ function EditForm({ doc }: { doc: Document }) {
   const sheet = useActionSheet();
   const [meta, setMeta] = useState<DocumentMetadata>(() => ({
     title: doc.title,
+    category: doc.category,
     type: doc.type,
     activityDate: doc.activityDate,
     expirationDate: doc.expirationDate,

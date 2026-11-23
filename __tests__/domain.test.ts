@@ -15,7 +15,8 @@ const doc = (p: Partial<Document>): Document => ({
   tripId: 'default-my-documents',
   originalName: `file${n}.pdf`,
   title: null,
-  type: null,
+  category: 'other',
+  type: 'general_file',
   activityDate: null,
   expirationDate: null,
   importedAt: n,
@@ -71,9 +72,9 @@ describe('grouping and ordering', () => {
 });
 
 describe('filters and search', () => {
-  const flight = doc({ type: 'flight', title: 'Flight to Barcelona', activityDate: '2026-12-12', originalName: 'SK395.pdf' });
-  const passport = doc({ type: 'passport', originalName: 'scan-001.jpg' });
-  const untyped = doc({ type: null, originalName: 'misc.pdf' });
+  const flight = doc({ category: 'transportation', type: 'flight_reservation', title: 'Flight to Barcelona', activityDate: '2026-12-12', originalName: 'SK395.pdf' });
+  const passport = doc({ category: 'personal', type: 'passport', originalName: 'scan-001.jpg' });
+  const untyped = doc({ originalName: 'misc.pdf' });
 
   it('filters by category, treating untyped as Other', () => {
     expect(matchesFilter(flight, 'bookings')).toBe(true);
@@ -86,7 +87,7 @@ describe('filters and search', () => {
   it('searches title, filename, type label and date text; undated docs match "no date"', () => {
     expect(matchesQuery(flight, 'barcelona', NOW)).toBe(true);
     expect(matchesQuery(flight, 'sk395', NOW)).toBe(true);
-    expect(matchesQuery(flight, 'flight december', NOW)).toBe(true);
+    expect(matchesQuery(flight, 'flight reservation december', NOW)).toBe(true);
     expect(matchesQuery(flight, '2026-12-12', NOW)).toBe(true);
     expect(matchesQuery(passport, 'scan-001', NOW)).toBe(true);
     expect(matchesQuery(passport, 'no date', NOW)).toBe(true);
@@ -112,15 +113,17 @@ describe('validation', () => {
   });
 
   it('sanitizes metadata: every field optional, invalid values dropped', () => {
-    expect(sanitizeMetadata({})).toEqual({ title: null, type: null, activityDate: null, expirationDate: null });
-    expect(sanitizeMetadata({ title: '  Hi  ', type: 'flight', activityDate: '2026-12-12' })).toEqual({
+    expect(sanitizeMetadata({})).toEqual({ title: null, category: null, type: null, activityDate: null, expirationDate: null });
+    expect(sanitizeMetadata({ title: '  Hi  ', type: 'flight_reservation', activityDate: '2026-12-12' })).toEqual({
       title: 'Hi',
-      type: 'flight',
+      category: 'transportation',
+      type: 'flight_reservation',
       activityDate: '2026-12-12',
       expirationDate: null,
     });
     expect(sanitizeMetadata({ title: '   ', type: 'rocket', activityDate: '2026-13-45' })).toEqual({
       title: null,
+      category: null,
       type: null,
       activityDate: null,
       expirationDate: null,
